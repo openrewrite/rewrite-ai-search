@@ -29,9 +29,8 @@ java {
     }
 }
 
-// Set as appropriate for your organization
-group = "com.yourorg"
-description = "Rewrite recipes."
+group = "io.moderne"
+description = "Rewrite AI search."
 
 repositories {
     mavenLocal()
@@ -58,15 +57,12 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok:latest.release")
     implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:${rewriteBomVersion}"))
 
-    implementation("org.openrewrite:rewrite-java")
-    runtimeOnly("org.openrewrite:rewrite-java-17")
-    // Need to have a slf4j binding to see any output enabled from the parser.
-    runtimeOnly("ch.qos.logback:logback-classic:1.2.+")
+    implementation("io.github.resilience4j:resilience4j-retry:latest.release")
+    implementation("com.konghq:unirest-java:3.14.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
-    testRuntimeOnly("com.google.guava:guava:latest.release")
 
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.assertj:assertj-core:latest.release")
@@ -80,9 +76,6 @@ tasks.named<Test>("test") {
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.add("-parameters")
-}
-tasks.named<JavaCompile>("compileJava") {
-    options.release.set(8)
 }
 
 configure<ContactsExtension> {
@@ -100,10 +93,10 @@ configure<PublishingExtension> {
 }
 
 publishing {
-  repositories {
-      maven {
-          name = "moderne"
-          url = uri("https://us-west1-maven.pkg.dev/moderne-dev/moderne-recipe")
-      }
-  }
+    repositories {
+        maven {
+            name = "moderne"
+            url = uri("https://us-west1-maven.pkg.dev/moderne-dev/moderne-recipe")
+        }
+    }
 }
