@@ -3,6 +3,7 @@ package io.moderne.rewrite.ai;
 import io.github.resilience4j.retry.Retry;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -14,8 +15,11 @@ import java.nio.file.Paths;
 import static io.moderne.rewrite.ai.RuntimeUtils.exec;
 import static java.util.Objects.requireNonNull;
 
+@RequiredArgsConstructor
 public class ModelClient {
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
+
+    private final String huggingFaceToken;
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
@@ -27,9 +31,9 @@ public class ModelClient {
         Path pyLauncher = MODELS_DIR.resolve("get_em.py");
         try {
             if (!Files.exists(pyLauncher)) {
-                Files.copy(requireNonNull(ModelClient.class.getResourceAsStream("get_em.py")), pyLauncher);
+                Files.copy(requireNonNull(ModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
             }
-            exec("python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio");
+            exec("python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers");
             exec("python3 %s/get_em.py".formatted(MODELS_DIR));
             checkForUp();
         } catch (IOException e) {

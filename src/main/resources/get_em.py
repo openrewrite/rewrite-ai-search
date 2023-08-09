@@ -140,8 +140,6 @@ class BigCodeEncoder(BaseEncoder):
         return embedding
 
 
-
-
 bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN) #can be moved into query_embedding if we want the model loaded at each query
 
 #GRADIO
