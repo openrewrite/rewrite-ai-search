@@ -15,8 +15,11 @@ import java.net.HttpRetryException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.function.Function;
 
 import static io.moderne.rewrite.ai.RuntimeUtils.exec;
 import static java.util.Objects.requireNonNull;
@@ -86,6 +89,28 @@ public class EmbeddingModelClient {
         return dist(e1, e2) <= threshold;
     }
 
+    public Relatedness getRelatedness(String t1, String t2) {
+        return getRelatedness(t1, t2, RELATED_THRESHOLD);
+    }
+
+    public Relatedness getRelatedness(String t1, String t2, double threshold) {
+        List<Duration> timings = new ArrayList<>(2);
+        float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
+        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
+        return new Relatedness(dist(e1, e2) <= threshold, timings);
+    }
+
+    private Function<String, float[]> timeEmbedding(List<Duration> timings) {
+        return t -> {
+            long start = System.nanoTime();
+            float[] em = getEmbedding(t);
+            if (timings.isEmpty()) {
+                timings.add(Duration.ofNanos(System.nanoTime() - start));
+            }
+            return em;
+        };
+    }
+
     private static double dist(float[] v1, float[] v2) {
         if (v1.length != v2.length) {
             throw new IllegalArgumentException("Vectors must have the same dimension");
@@ -129,5 +154,8 @@ public class EmbeddingModelClient {
             }
             return em;
         }
+    }
+
+    public record Relatedness(boolean isRelated, List<Duration> embeddingTimings) {
     }
 }
