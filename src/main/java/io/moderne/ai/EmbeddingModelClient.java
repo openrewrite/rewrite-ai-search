@@ -1,4 +1,4 @@
-package io.moderne.rewrite.ai;
+package io.moderne.ai;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -22,7 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Function;
 
-import static io.moderne.rewrite.ai.RuntimeUtils.exec;
+import static io.moderne.ai.RuntimeUtils.exec;
 import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor

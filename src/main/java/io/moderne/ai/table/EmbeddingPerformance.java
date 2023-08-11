@@ -1,4 +1,4 @@
-package io.moderne.rewrite.ai.table;
+package io.moderne.ai.table;
 
 import lombok.Value;
 import org.openrewrite.Column;

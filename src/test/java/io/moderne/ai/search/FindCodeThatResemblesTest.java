@@ -1,4 +1,4 @@
-package io.moderne.rewrite.ai.search;
+package io.moderne.ai.search;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.java.JavaParser;

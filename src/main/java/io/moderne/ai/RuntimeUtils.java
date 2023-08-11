@@ -1,4 +1,4 @@
-package io.moderne.rewrite.ai;
+package io.moderne.ai;
 
 import java.io.BufferedReader;
 import java.io.IOException;

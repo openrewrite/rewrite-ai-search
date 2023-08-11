@@ -1,7 +1,7 @@
-package io.moderne.rewrite.ai.search;
+package io.moderne.ai.search;
 
-import io.moderne.rewrite.ai.EmbeddingModelClient;
-import io.moderne.rewrite.ai.table.EmbeddingPerformance;
+import io.moderne.ai.table.EmbeddingPerformance;
+import io.moderne.ai.EmbeddingModelClient;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.openrewrite.*;

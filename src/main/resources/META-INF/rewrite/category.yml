@@ -1,0 +1,16 @@
+#
+# For commercial customers of Moderne Inc., this repository is licensed per the terms of our contract.
+# For everyone else, this is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+# See: https://creativecommons.org/licenses/by-nc-sa/4.0/
+#
+
+---
+type: specs.openrewrite.org/v1beta/category
+name: Moderne
+packageName: io.moderne
+description: 'Cutting-edge research at Moderne.'
+---
+type: specs.openrewrite.org/v1beta/category
+name: Machine learning
+packageName: io.moderne.ai
+description: 'Uses of machine learning in recipes.'
