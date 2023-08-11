@@ -5,14 +5,20 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import java.util.List;
+
 import static org.openrewrite.java.Assertions.java;
 
-public class FindHttpRequestsWithContentTypeTest implements RewriteTest {
+public class FindCodeThatResemblesTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new FindHttpRequestsWithContentType("application/json",
-          "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"));
+        spec.recipe(new FindCodeThatResembles(
+          "HTTP request with Content-Type application/json",
+          List.of("kong.unirest.* *(..)", "okhttp*..* *(..)", "org.springframework.web.reactive.function.client.WebClient *(..)",
+            "org.apache.hc..* *(..)", "org.apache.http.client..* *(..)"),
+          "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"
+        ));
     }
 
     @Test
@@ -75,48 +81,6 @@ public class FindHttpRequestsWithContentTypeTest implements RewriteTest {
                             .body("1")
                             .asString();
                   }
-              }
-              """
-          )
-        );
-    }
-
-    @Test
-    void okhttp() {
-        rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("okhttp")),
-          //language=java
-          java(
-            """
-              import okhttp3.*;
-              class Test {
-                   OkHttpClient client = new OkHttpClient();
-                   
-                   String post(String url, String json) {
-                     Request request = /*~~>*/new Request.Builder()
-                         .url(url)
-                         .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
-                         .build();
-                     try (Response response = client.newCall(request).execute()) {
-                       return response.body().string();
-                     }
-                   }
-              }
-              """,
-            """
-              import okhttp.*;
-              class Test {
-                   OkHttpClient client = new OkHttpClient();
-                   
-                   String post(String url, String json) {
-                     Request request = new Request.Builder()
-                         .url(url)
-                         .post(RequestBody.create(json, MediaType.get("application/json; charset=utf-8")))
-                         .build();
-                     try (Response response = client.newCall(request).execute()) {
-                       return response.body().string();
-                     }
-                   }
               }
               """
           )

@@ -8,20 +8,30 @@ import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
+import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.SearchResult;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class FindHttpRequestsWithContentType extends Recipe {
-    @Option(displayName = "Content-type header",
-            description = "The value of the `Content-Type` header to search for.",
-            example = "application/json")
-    private final String contentType;
+public class FindCodeThatResembles extends Recipe {
+    @Option(displayName = "Resembles",
+            description = "The text, either a natural language description or a code sample, " +
+                          "that you are looking for.",
+            example = "HTTP request with Content-Type application/json")
+    private final String resembles;
+
+    @Option(displayName = "Method filters",
+            description = "Since AI based matching has a higher latency than rules based matching, " +
+                          "filter the methods that are searched for the `resembles` text.",
+            example = "kong.unirest.* *(..)")
+    private final List<String> methodFilters;
 
     @Option(displayName = "Hugging Face token",
             description = "The token to use for the HuggingFace API. Create a " +
@@ -45,13 +55,18 @@ public class FindHttpRequestsWithContentType extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        MethodMatcher kong = new MethodMatcher("kong.unirest.* *(..)", false);
-        MethodMatcher okhttp = new MethodMatcher("okhttp*..* *(..)", true);
-        MethodMatcher springWebClient = new MethodMatcher("org.springframework.web.reactive.function.client.WebClient *(..)", true);
-        MethodMatcher apacheHttpClient5 = new MethodMatcher("org.apache.hc..* *(..)", true);
-        MethodMatcher apacheHttpClient4 = new MethodMatcher("org.apache.http.client..* *(..)", true);
+        List<MethodMatcher> methodMatchers = new ArrayList<>(methodFilters.size());
+        for (String m : methodFilters) {
+            methodMatchers.add(new MethodMatcher(m, true));
+        }
 
-        return new JavaIsoVisitor<>() {
+        List<TreeVisitor<?, ExecutionContext>> preconditions = new ArrayList<>(methodMatchers.size());
+        for (MethodMatcher m : methodMatchers) {
+            preconditions.add(new UsesMethod<>(m));
+        }
+
+        //noinspection unchecked
+        return Preconditions.check(Preconditions.or(preconditions.toArray(TreeVisitor[]::new)), new JavaIsoVisitor<>() {
             @Override
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
                 if (tree instanceof SourceFile) {
@@ -73,8 +88,13 @@ public class FindHttpRequestsWithContentType extends Recipe {
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-                if(!(kong.matches(method) || okhttp.matches(method) || springWebClient.matches(method) ||
-                   apacheHttpClient5.matches(method) || apacheHttpClient4.matches(method))) {
+                boolean matches = false;
+                for (MethodMatcher methodMatcher : methodMatchers) {
+                    if (methodMatcher.matches(method)) {
+                        matches = true;
+                    }
+                }
+                if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
 
@@ -83,8 +103,8 @@ public class FindHttpRequestsWithContentType extends Recipe {
                     modelClient.start();
                 }
 
-                EmbeddingModelClient.Relatedness related = modelClient
-                        .getRelatedness("HTTP request with Content-Type %s".formatted(contentType), method.printTrimmed(getCursor()));
+                EmbeddingModelClient.Relatedness related = modelClient.getRelatedness(resembles,
+                        method.printTrimmed(getCursor()));
                 for (Duration timing : related.embeddingTimings()) {
                     getCursor().getNearestMessage("count", new AtomicInteger(0)).incrementAndGet();
                     AtomicLong max = getCursor().getNearestMessage("max", new AtomicLong(0));
@@ -97,6 +117,6 @@ public class FindHttpRequestsWithContentType extends Recipe {
                 }
                 return super.visitMethodInvocation(method, ctx);
             }
-        };
+        });
     }
 }
