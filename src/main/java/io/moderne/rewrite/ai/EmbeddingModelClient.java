@@ -1,17 +1,18 @@
 package io.moderne.rewrite.ai;
 
 import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Timer;
 import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import lombok.RequiredArgsConstructor;
 import org.openrewrite.internal.MetricsHelper;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.HttpRetryException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,9 +51,8 @@ public class EmbeddingModelClient {
             if (!Files.exists(pyLauncher)) {
                 Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
             }
-            exec("python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers");
-            exec("nohup HUGGING_FACE_TOKEN=%s python3 %s/get_em.py >/dev/null 2>&1 &"
-                    .formatted(huggingFaceToken, MODELS_DIR));
+            exec("python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers", true);
+            exec("HUGGING_FACE_TOKEN=%s python3 %s/get_em.py".formatted(huggingFaceToken, MODELS_DIR), false);
             if (!checkForUp()) {
                 throw new IllegalStateException("Unable to start model daemon");
             }
@@ -62,20 +62,26 @@ public class EmbeddingModelClient {
     }
 
     public boolean checkForUp() {
-        Retry retry = Retry.ofDefaults("model-up");
+        Retry retry = Retry.of("model-up", RetryConfig.custom()
+                .maxAttempts(60)
+                .waitDuration(Duration.ofMillis(1000))
+                .retryOnResult(response -> (Integer) response != 200)
+                .failAfterMaxAttempts(true)
+                .build());
         try {
-            Retry.decorateCheckedRunnable(retry, this::checkForUpRequest).run();
+            Retry.decorateCheckedSupplier(retry, this::checkForUpRequest).get();
         } catch (Throwable e) {
             return false;
         }
         return true;
     }
 
-    private void checkForUpRequest() throws HttpRetryException {
-        HttpResponse<String> response = Unirest.head("http://127.0.0.1:7860")
-                .asString();
-        if (!response.isSuccess()) {
-            throw new HttpRetryException("Check again for gradio to be up", response.getStatus());
+    private int checkForUpRequest() {
+        try {
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7860").asString();
+            return response.getStatus();
+        } catch (UnirestException e) {
+            return 523;
         }
     }
 
