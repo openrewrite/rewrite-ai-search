@@ -1,8 +1,13 @@
+import os
 import torch #pytorch = 2.0.1
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
 from abc import ABC, abstractmethod
 import gradio as gr # 3.23.0
+import huggingface_hub
+
+HUGGING_FACE_TOKEN = os.environ.get('HUGGING_FACE_TOKEN')
+huggingface_hub.login(HUGGING_FACE_TOKEN)
 logging.set_verbosity_error()
 
 #encoder models
@@ -13,6 +18,7 @@ MASK_TOKEN = "<mask>"
 SEPARATOR_TOKEN = "<sep>"
 PAD_TOKEN = "<pad>"
 CLS_TOKEN = "<cls>"
+
 
 
 def pool_and_normalize(
@@ -85,7 +91,7 @@ def set_device(inputs: Dict[str, torch.Tensor], device: str) -> Dict[str, torch.
 
 class BaseEncoder(torch.nn.Module, ABC):
 
-    def __init__(self, device, maximum_token_len, model_name):
+    def __init__(self, device, maximum_token_len, model_name):#, HF_token):
         super().__init__()
 
         self.model_name = model_name
@@ -139,11 +145,10 @@ class BigCodeEncoder(BaseEncoder):
 
         return embedding
 
-
-bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN) #can be moved into query_embedding if we want the model loaded at each query
-
+bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN)
 #GRADIO
 def query_embedding(query):
+
     embedding = bigcode_model.encode([query])
     return str(list(embedding[0]))
 

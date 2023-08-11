@@ -13,7 +13,7 @@ public class RuntimeUtils {
     public static String exec(String cmd) {
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-            if (!proc.waitFor(2, TimeUnit.MINUTES)) {
+            if (!proc.waitFor(30, TimeUnit.SECONDS)) {
                 throw new IOException("Execution timed out for command: " + cmd);
             }
             if (proc.exitValue() != 0) {

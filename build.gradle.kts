@@ -56,13 +56,17 @@ dependencies {
     compileOnly("com.google.code.findbugs:jsr305:latest.release")
     annotationProcessor("org.projectlombok:lombok:latest.release")
     implementation(platform("org.openrewrite.recipe:rewrite-recipe-bom:${rewriteBomVersion}"))
+    implementation("org.openrewrite:rewrite-core")
+    implementation("org.openrewrite:rewrite-java")
 
+    implementation("io.micrometer:micrometer-core:latest.release")
     implementation("io.github.resilience4j:resilience4j-retry:latest.release")
     implementation("com.konghq:unirest-java:3.14.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:latest.release")
     testImplementation("org.junit.jupiter:junit-jupiter-params:latest.release")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:latest.release")
+    testRuntimeOnly("org.openrewrite:rewrite-java-17")
 
     testImplementation("org.openrewrite:rewrite-test")
     testImplementation("org.assertj:assertj-core:latest.release")
