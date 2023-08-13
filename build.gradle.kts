@@ -29,7 +29,7 @@ java {
     }
 }
 
-group = "io.moderne"
+group = "org.openrewrite.recipe"
 description = "Rewrite AI search."
 
 repositories {
