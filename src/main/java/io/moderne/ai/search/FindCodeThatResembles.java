@@ -15,10 +15,10 @@
  */
 package io.moderne.ai.search;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
-import lombok.RequiredArgsConstructor;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
 
-@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class FindCodeThatResembles extends Recipe {
     @Option(displayName = "Resembles",
@@ -58,6 +57,13 @@ public class FindCodeThatResembles extends Recipe {
     private final String huggingFaceToken;
 
     private final transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+
+    @JsonCreator
+    public FindCodeThatResembles(String resembles, List<String> methodFilters, String huggingFaceToken) {
+        this.resembles = resembles;
+        this.methodFilters = methodFilters;
+        this.huggingFaceToken = huggingFaceToken;
+    }
 
     @Override
     public String getDisplayName() {
