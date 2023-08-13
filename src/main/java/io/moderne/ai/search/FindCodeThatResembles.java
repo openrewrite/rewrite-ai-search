@@ -61,13 +61,14 @@ public class FindCodeThatResembles extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Find HTTP requests with a particular `Content-Type` header";
+        return "Find code that resembles a pattern";
     }
 
     @Override
     public String getDescription() {
         return "This recipe uses a hybrid rules-based and AI approach to find " +
-               "HTTP requests with a particular `Content-Type` header.";
+               "code that resembles a pattern. The pattern can be expressed either " +
+               "in natural language or as a code sample.";
     }
 
     @Override
