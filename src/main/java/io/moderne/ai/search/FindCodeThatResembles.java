@@ -1,7 +1,7 @@
 package io.moderne.ai.search;
 
-import io.moderne.ai.table.EmbeddingPerformance;
 import io.moderne.ai.EmbeddingModelClient;
+import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.openrewrite.*;
@@ -17,6 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static java.util.Objects.requireNonNull;
 
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -72,12 +74,14 @@ public class FindCodeThatResembles extends Recipe {
                 if (tree instanceof SourceFile) {
                     getCursor().putMessage("count", new AtomicInteger());
                     getCursor().putMessage("max", new AtomicLong());
+                    getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
                     J visit = super.visit(tree, ctx);
                     if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
-                        Duration max = Duration.ofNanos(getCursor().getMessage("max", new AtomicLong()).get());
+                        Duration max = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("max")).get());
                         performance.insertRow(ctx, new EmbeddingPerformance.Row((
                                 (SourceFile) tree).getSourcePath().toString(),
-                                getCursor().getMessage("count", new AtomicInteger()).get(),
+                                requireNonNull(getCursor().<AtomicInteger>getMessage("count")).get(),
+                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogram")).getBuckets(),
                                 max));
                     }
                     return visit;
@@ -106,16 +110,16 @@ public class FindCodeThatResembles extends Recipe {
                 EmbeddingModelClient.Relatedness related = modelClient.getRelatedness(resembles,
                         method.printTrimmed(getCursor()));
                 for (Duration timing : related.embeddingTimings()) {
-                    getCursor().getNearestMessage("count", new AtomicInteger(0)).incrementAndGet();
-                    AtomicLong max = getCursor().getNearestMessage("max", new AtomicLong(0));
-                    if (max.get() < timing.toNanos()) {
+                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
+                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
+                    AtomicLong max = getCursor().getNearestMessage("max");
+                    if (requireNonNull(max).get() < timing.toNanos()) {
                         max.set(timing.toNanos());
                     }
                 }
-                if (related.isRelated()) {
-                    return SearchResult.found(method);
-                }
-                return super.visitMethodInvocation(method, ctx);
+                return related.isRelated() ?
+                        SearchResult.found(method) :
+                        super.visitMethodInvocation(method, ctx);
             }
         });
     }
