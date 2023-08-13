@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
 
@@ -56,7 +57,6 @@ public class FindCodeThatResembles extends Recipe {
             example = "hf_*****")
     private final String huggingFaceToken;
 
-    private transient EmbeddingModelClient modelClient;
     private final transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
     @Override
@@ -73,6 +73,8 @@ public class FindCodeThatResembles extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        AtomicReference<EmbeddingModelClient> modelClient = new AtomicReference<>();
+
         List<MethodMatcher> methodMatchers = new ArrayList<>(methodFilters.size());
         for (String m : methodFilters) {
             methodMatchers.add(new MethodMatcher(m, true));
@@ -118,12 +120,12 @@ public class FindCodeThatResembles extends Recipe {
                     return super.visitMethodInvocation(method, ctx);
                 }
 
-                if (modelClient == null) {
-                    modelClient = new EmbeddingModelClient(huggingFaceToken);
-                    modelClient.start();
+                if (modelClient.get() == null) {
+                    modelClient.set(new EmbeddingModelClient(huggingFaceToken));
+                    modelClient.get().start();
                 }
 
-                EmbeddingModelClient.Relatedness related = modelClient.getRelatedness(resembles,
+                EmbeddingModelClient.Relatedness related = modelClient.get().getRelatedness(resembles,
                         method.printTrimmed(getCursor()));
                 for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
