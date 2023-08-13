@@ -68,7 +68,7 @@ public class FindCodeThatResembles extends Recipe {
         }
 
         //noinspection unchecked
-        return Preconditions.check(Preconditions.or(preconditions.toArray(TreeVisitor[]::new)), new JavaIsoVisitor<>() {
+        return Preconditions.check(Preconditions.or(preconditions.toArray(new TreeVisitor[0])), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
                 if (tree instanceof SourceFile) {
@@ -109,7 +109,7 @@ public class FindCodeThatResembles extends Recipe {
 
                 EmbeddingModelClient.Relatedness related = modelClient.getRelatedness(resembles,
                         method.printTrimmed(getCursor()));
-                for (Duration timing : related.embeddingTimings()) {
+                for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
                     AtomicLong max = getCursor().getNearestMessage("max");

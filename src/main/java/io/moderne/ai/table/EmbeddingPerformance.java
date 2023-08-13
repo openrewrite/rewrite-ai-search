@@ -1,6 +1,7 @@
 package io.moderne.ai.table;
 
 import lombok.Getter;
+import lombok.Value;
 import org.openrewrite.Column;
 import org.openrewrite.DataTable;
 import org.openrewrite.Recipe;
@@ -43,24 +44,25 @@ public class EmbeddingPerformance extends DataTable<EmbeddingPerformance.Row> {
         }
     }
 
-    public record Row(
-            @Column(displayName = "Source file",
-                    description = "The source file that the method call occurred in.")
-            String sourceFile,
+    @Value
+    public static class Row {
+        @Column(displayName = "Source file",
+                description = "The source file that the method call occurred in.")
+        String sourceFile;
 
-            @Column(displayName = "Number of requests",
-                    description = "The count of requests made to the model.")
-            int count,
+        @Column(displayName = "Number of requests",
+                description = "The count of requests made to the model.")
+        int count;
 
-            @Column(displayName = "Histogram",
-                    description = "The latency histogram of the requests made to the model (counts). " +
-                                  "The histogram is a non-cumulative fixed distribution of 100 buckets " +
-                                  "of 0.01 second each.")
-            @Nullable
-            List<Integer> histogram,
+        @Column(displayName = "Histogram",
+                description = "The latency histogram of the requests made to the model (counts). " +
+                              "The histogram is a non-cumulative fixed distribution of 100 buckets " +
+                              "of 0.01 second each.")
+        @Nullable
+        List<Integer> histogram;
 
-            @Column(displayName = "Max latency",
-                    description = "The maximum embedding latency.")
-            Duration max) {
+        @Column(displayName = "Max latency",
+                description = "The maximum embedding latency.")
+        Duration max;
     }
 }

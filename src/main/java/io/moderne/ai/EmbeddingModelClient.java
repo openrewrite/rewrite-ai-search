@@ -1,14 +1,14 @@
 package io.moderne.ai;
 
-import io.github.resilience4j.retry.Retry;
-import io.github.resilience4j.retry.RetryConfig;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Timer;
 import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.openrewrite.internal.MetricsHelper;
 
 import java.io.IOException;
@@ -32,7 +32,7 @@ public class EmbeddingModelClient {
 
     private final String huggingFaceToken;
 
-    private final LinkedHashMap<String, float[]> embeddingCache = new LinkedHashMap<>() {
+    private final LinkedHashMap<String, float[]> embeddingCache = new LinkedHashMap<String, float[]>() {
         @Override
         protected boolean removeEldestEntry(java.util.Map.Entry<String, float[]> eldest) {
             return size() > 1000;
@@ -52,7 +52,7 @@ public class EmbeddingModelClient {
                 Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
             }
             exec("python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers", true);
-            exec("HUGGING_FACE_TOKEN=%s python3 %s/get_em.py".formatted(huggingFaceToken, MODELS_DIR), false);
+            exec(String.format("HUGGING_FACE_TOKEN=%s python3 %s/get_em.py", huggingFaceToken, MODELS_DIR), false);
             if (!checkForUp()) {
                 throw new IllegalStateException("Unable to start model daemon");
             }
@@ -62,18 +62,17 @@ public class EmbeddingModelClient {
     }
 
     public boolean checkForUp() {
-        Retry retry = Retry.of("model-up", RetryConfig.custom()
-                .maxAttempts(60)
-                .waitDuration(Duration.ofMillis(1000))
-                .retryOnResult(response -> (Integer) response != 200)
-                .failAfterMaxAttempts(true)
-                .build());
-        try {
-            Retry.decorateCheckedSupplier(retry, this::checkForUpRequest).get();
-        } catch (Throwable e) {
-            return false;
+        for (int i = 0; i < 60; i++) {
+            try {
+                if (checkForUpRequest() == 200) {
+                    return true;
+                }
+                Thread.sleep(1_000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
-        return true;
+        return false;
     }
 
     private int checkForUpRequest() {
@@ -147,10 +146,19 @@ public class EmbeddingModelClient {
         return em;
     }
 
-    private record GradioRequest(String... data) {
+    @Getter
+    private static class GradioRequest {
+        private final String[] data;
+
+        GradioRequest(String... data) {
+            this.data = data;
+        }
     }
 
-    private record GradioResponse(List<String> data) {
+    @Value
+    private static class GradioResponse {
+        List<String> data;
+
         public float[] getEmbedding() {
             String d = data.get(0);
             String[] emStr = d.substring(1, d.length() - 1).split(",");
@@ -162,6 +170,9 @@ public class EmbeddingModelClient {
         }
     }
 
-    public record Relatedness(boolean isRelated, List<Duration> embeddingTimings) {
+    @Value
+    public static class Relatedness {
+        boolean isRelated;
+        List<Duration> embeddingTimings;
     }
 }
