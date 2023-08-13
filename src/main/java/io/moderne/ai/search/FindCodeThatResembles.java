@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
+import lombok.Value;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -36,27 +37,28 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
 
+@Value
 @EqualsAndHashCode(callSuper = false)
 public class FindCodeThatResembles extends Recipe {
     @Option(displayName = "Resembles",
             description = "The text, either a natural language description or a code sample, " +
                           "that you are looking for.",
             example = "HTTP request with Content-Type application/json")
-    private final String resembles;
+    String resembles;
 
     @Option(displayName = "Method filters",
             description = "Since AI based matching has a higher latency than rules based matching, " +
                           "filter the methods that are searched for the `resembles` text.",
             example = "kong.unirest.* *(..)")
-    private final List<String> methodFilters;
+    List<String> methodFilters;
 
     @Option(displayName = "Hugging Face token",
             description = "The token to use for the HuggingFace API. Create a " +
                           "[read token](https://huggingface.co/settings/tokens).",
             example = "hf_*****")
-    private final String huggingFaceToken;
+    String huggingFaceToken;
 
-    private final transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+    transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
     @JsonCreator
     public FindCodeThatResembles(String resembles, List<String> methodFilters, String huggingFaceToken) {
