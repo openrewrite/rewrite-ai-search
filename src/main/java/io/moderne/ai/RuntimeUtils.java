@@ -15,6 +15,8 @@
  */
 package io.moderne.ai;
 
+import lombok.RequiredArgsConstructor;
+
 import java.io.*;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
@@ -52,20 +54,11 @@ public class RuntimeUtils {
         }
     }
 
-    public static void main(String[] args) {
-        exec(args[0], true);
-    }
-
+    @RequiredArgsConstructor
     private static class StreamGobbler implements Runnable {
         private final InputStream inputStream;
         private final InputStream errorStream;
         private final Consumer<String> consumer;
-
-        private StreamGobbler(InputStream inputStream, InputStream errorStream, Consumer<String> consumer) {
-            this.inputStream = inputStream;
-            this.errorStream = errorStream;
-            this.consumer = consumer;
-        }
 
         @Override
         public void run() {
