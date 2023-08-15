@@ -66,7 +66,7 @@ public class EmbeddingModelClient {
             if (!Files.exists(pyLauncher)) {
                 Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
             }
-            exec("/usr/bin/python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers", true);
+//            exec("/usr/bin/python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers torch", true);
             exec(String.format("HUGGING_FACE_TOKEN=%s /usr/bin/python3 %s/get_em.py", huggingFaceToken, MODELS_DIR), false);
             if (!checkForUp()) {
                 throw new IllegalStateException("Unable to start model daemon");
