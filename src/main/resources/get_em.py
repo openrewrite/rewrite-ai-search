@@ -16,14 +16,20 @@
 
 import os
 import torch #pytorch = 2.0.1
+
+os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
+os.environ["HF_HOME"]="/HF_CACHE/huggingface"
+os.environ["HUGGINGFACE_HUB_CACHE"]="HF_CACHE/huggingface/hub"
+os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
+
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
 from abc import ABC, abstractmethod
 import gradio as gr # 3.23.0
 import huggingface_hub
 
-HUGGING_FACE_TOKEN = os.environ.get('HUGGING_FACE_TOKEN')
-huggingface_hub.login(HUGGING_FACE_TOKEN)
+# HUGGING_FACE_TOKEN = os.environ.get('HUGGING_FACE_TOKEN') #don't need this anymore
+# huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
 logging.set_verbosity_error()
 
 #encoder models
@@ -68,10 +74,8 @@ def pool_and_normalize(
         return pooled_normalized_embeddings
 
 def prepare_tokenizer(tokenizer_path):
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-    except OSError:
-        tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_auth_token=True)
+    
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
 
     tokenizer.add_special_tokens({"pad_token": PAD_TOKEN})
     tokenizer.add_special_tokens({"sep_token": SEPARATOR_TOKEN})
@@ -112,7 +116,7 @@ class BaseEncoder(torch.nn.Module, ABC):
 
         self.model_name = model_name
         self.tokenizer = prepare_tokenizer(model_name)
-        self.encoder = AutoModel.from_pretrained(model_name, use_auth_token=True).to(device).eval()
+        self.encoder = AutoModel.from_pretrained(model_name).to(device).eval()
         self.device = device
         self.maximum_token_len = maximum_token_len
 
