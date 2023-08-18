@@ -15,7 +15,6 @@
  */
 package io.moderne.ai.search;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
@@ -60,13 +59,6 @@ public class FindCodeThatResembles extends Recipe {
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
-    @JsonCreator
-    public FindCodeThatResembles(String resembles, List<String> methodFilters, String huggingFaceToken) {
-        this.resembles = resembles;
-        this.methodFilters = methodFilters;
-        this.huggingFaceToken = huggingFaceToken;
-    }
-
     @Override
     public String getDisplayName() {
         return "Find code that resembles a pattern";
@@ -81,8 +73,6 @@ public class FindCodeThatResembles extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        AtomicReference<EmbeddingModelClient> modelClient = new AtomicReference<>();
-
         List<MethodMatcher> methodMatchers = new ArrayList<>(methodFilters.size());
         for (String m : methodFilters) {
             methodMatchers.add(new MethodMatcher(m, true));
@@ -128,13 +118,8 @@ public class FindCodeThatResembles extends Recipe {
                     return super.visitMethodInvocation(method, ctx);
                 }
 
-                if (modelClient.get() == null) {
-                    modelClient.set(new EmbeddingModelClient(huggingFaceToken));
-                    modelClient.get().start();
-                }
-
-                EmbeddingModelClient.Relatedness related = modelClient.get().getRelatedness(resembles,
-                        method.printTrimmed(getCursor()));
+                EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance(huggingFaceToken)
+                        .getRelatedness(resembles, method.printTrimmed(getCursor()));
                 for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);

@@ -22,9 +22,9 @@ import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.internal.lang.Nullable;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,12 +40,12 @@ import java.util.function.Function;
 import static io.moderne.ai.RuntimeUtils.exec;
 import static java.util.Objects.requireNonNull;
 
-@RequiredArgsConstructor
 public class EmbeddingModelClient {
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
     private static final double RELATED_THRESHOLD = 0.0755;
 
-    private final String huggingFaceToken;
+    @Nullable
+    private static EmbeddingModelClient INSTANCE;
 
     private final LinkedHashMap<String, float[]> embeddingCache = new LinkedHashMap<String, float[]>() {
         @Override
@@ -60,7 +60,15 @@ public class EmbeddingModelClient {
         }
     }
 
-    public void start() {
+    public static synchronized EmbeddingModelClient getInstance(String huggingFaceToken) {
+        if (INSTANCE == null) {
+            INSTANCE = new EmbeddingModelClient();
+            INSTANCE.start(huggingFaceToken);
+        }
+        return INSTANCE;
+    }
+
+    private void start(String huggingFaceToken) {
         Path pyLauncher = MODELS_DIR.resolve("get_em.py");
         try {
             if (!Files.exists(pyLauncher)) {

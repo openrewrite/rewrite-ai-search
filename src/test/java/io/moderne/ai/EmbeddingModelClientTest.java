@@ -25,8 +25,7 @@ public class EmbeddingModelClientTest {
 
     @Test
     void start() {
-        EmbeddingModelClient client = new EmbeddingModelClient("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");
-        client.start();
+        EmbeddingModelClient client = EmbeddingModelClient.getInstance("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");
         assertThat(client.getEmbedding("test")).hasSizeGreaterThan(0);
     }
 }
