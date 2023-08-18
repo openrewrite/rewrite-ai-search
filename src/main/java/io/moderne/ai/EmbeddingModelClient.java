@@ -15,15 +15,12 @@
  */
 package io.moderne.ai;
 
-import io.micrometer.core.instrument.Metrics;
-import io.micrometer.core.instrument.Timer;
 import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import lombok.Getter;
 import lombok.Value;
-import org.openrewrite.internal.MetricsHelper;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 
@@ -35,7 +32,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
@@ -173,21 +169,14 @@ public class EmbeddingModelClient {
     }
 
     public float[] getEmbedding(String text) {
-        Timer.Sample sample = Timer.start();
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
                 .body(new GradioRequest(text))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
-            IllegalStateException t = new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
-            sample.stop(MetricsHelper.errorTags(Timer.builder("rewrite.ai.get.embedding"), t)
-                    .register(Metrics.globalRegistry));
-            throw t;
+            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
         }
-        float[] em = response.getBody().getEmbedding();
-        sample.stop(MetricsHelper.successTags(Timer.builder("rewrite.ai.get.embedding"))
-                .register(Metrics.globalRegistry));
-        return em;
+        return response.getBody().getEmbedding();
     }
 
     @Getter

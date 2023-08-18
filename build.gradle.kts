@@ -12,7 +12,6 @@ dependencies {
     implementation("org.openrewrite:rewrite-core")
     implementation("org.openrewrite:rewrite-java")
 
-    implementation("io.micrometer:micrometer-core:latest.release")
     implementation("com.konghq:unirest-java:3.14.2")
 
     testRuntimeOnly("org.openrewrite:rewrite-java-17")
