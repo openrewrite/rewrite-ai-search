@@ -32,9 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -50,12 +48,12 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-    private final LinkedHashMap<String, float[]> embeddingCache = new LinkedHashMap<String, float[]>() {
+    private final Map<String, float[]> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<String, float[]>() {
         @Override
         protected boolean removeEldestEntry(java.util.Map.Entry<String, float[]> eldest) {
             return size() > 1000;
         }
-    };
+    });
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
