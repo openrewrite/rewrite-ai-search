@@ -24,10 +24,10 @@ import kong.unirest.UnirestException;
 import lombok.Getter;
 import lombok.Value;
 import org.openrewrite.internal.MetricsHelper;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -35,12 +35,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static io.moderne.ai.RuntimeUtils.exec;
 import static java.util.Objects.requireNonNull;
 
 public class EmbeddingModelClient {
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
     private static final double RELATED_THRESHOLD = 0.0755;
 
@@ -63,30 +66,50 @@ public class EmbeddingModelClient {
     public static synchronized EmbeddingModelClient getInstance(String huggingFaceToken) {
         if (INSTANCE == null) {
             INSTANCE = new EmbeddingModelClient();
-            INSTANCE.start(huggingFaceToken);
+            if (INSTANCE.checkForUpRequest() != 200) {
+                INSTANCE.start(huggingFaceToken);
+            }
         }
         return INSTANCE;
     }
 
     private void start(String huggingFaceToken) {
+        if (StringUtils.isBlank(huggingFaceToken)) {
+            throw new IllegalArgumentException("Hugging face token is empty.");
+        }
+
         Path pyLauncher = MODELS_DIR.resolve("get_em.py");
         try {
             if (!Files.exists(pyLauncher)) {
                 Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
             }
-//            exec("/usr/bin/python3 -m pip install --no-python-version-warning --disable-pip-version-check gradio transformers torch", true);
-            exec(String.format("HUGGING_FACE_TOKEN=%s /usr/bin/python3 %s/get_em.py", huggingFaceToken, MODELS_DIR), false);
-            if (!checkForUp()) {
-                throw new IllegalStateException("Unable to start model daemon");
+            StringWriter sw = new StringWriter();
+            PrintWriter procOut = new PrintWriter(sw);
+
+            String cmd = String.format("HUGGING_FACE_TOKEN=%s /usr/bin/python3 %s/get_em.py", huggingFaceToken, MODELS_DIR);
+            Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
+            EXECUTOR_SERVICE.submit(() -> {
+                new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
+                        .forEach(procOut::println);
+                new BufferedReader(new InputStreamReader(proc.getErrorStream())).lines()
+                        .forEach(procOut::println);
+            });
+
+            if (!checkForUp(proc)) {
+                throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    public boolean checkForUp() {
+    private boolean checkForUp(Process proc) {
         for (int i = 0; i < 60; i++) {
             try {
+                if (!proc.isAlive() && proc.exitValue() != 0) {
+                    return false;
+                }
+
                 if (checkForUpRequest() == 200) {
                     return true;
                 }
