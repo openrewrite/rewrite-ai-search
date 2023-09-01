@@ -44,12 +44,12 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-    private final Map<String, float[]> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<String, float[]>() {
-        @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<String, float[]> eldest) {
-            return size() > 1000;
-        }
-    });
+     private final Map<List<String>, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<List<String>, Boolean>() {
+         @Override
+         protected boolean removeEldestEntry(java.util.Map.Entry<List<String>, Boolean> eldest) {
+             return size() > 1000;
+         }
+     });
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
@@ -57,30 +57,26 @@ public class EmbeddingModelClient {
         }
     }
 
-    public static synchronized EmbeddingModelClient getInstance(String huggingFaceToken) {
+    public static synchronized EmbeddingModelClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new EmbeddingModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                INSTANCE.start(huggingFaceToken);
+                INSTANCE.start();
             }
         }
         return INSTANCE;
     }
 
-    private void start(String huggingFaceToken) {
-        if (StringUtils.isBlank(huggingFaceToken)) {
-            throw new IllegalArgumentException("Hugging face token is empty.");
-        }
-
-        Path pyLauncher = MODELS_DIR.resolve("get_em.py");
+    private void start() {
+        Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
         try {
             if (!Files.exists(pyLauncher)) {
-                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
+                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher);
             }
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
 
-            String cmd = String.format("HUGGING_FACE_TOKEN=%s /usr/bin/python3 %s/get_em.py", huggingFaceToken, MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -128,31 +124,28 @@ public class EmbeddingModelClient {
         return isRelated(t1, t2, RELATED_THRESHOLD);
     }
 
-    public boolean isRelated(String t1, String t2, double threshold) {
-        float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
-        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
-        return dist(e1, e2) <= threshold;
-    }
+    // public boolean isRelated(String t1, String t2, double threshold) {
+    //     float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
+    //     float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
+    //     return dist(e1, e2) <= threshold;
+    // }
 
-    public Relatedness getRelatedness(String t1, String t2) {
-        return getRelatedness(t1, t2, RELATED_THRESHOLD);
-    }
 
     public Relatedness getRelatedness(String t1, String t2, double threshold) {
         List<Duration> timings = new ArrayList<>(2);
-        float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
-        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
-        return new Relatedness(dist(e1, e2) <= threshold, timings);
+        boolean b1 = embeddingCache.computeIfAbsent(List.of(t1, t2), timeEmbedding(timings));
+        // float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
+        return new Relatedness(b1, timings);
     }
 
-    private Function<String, float[]> timeEmbedding(List<Duration> timings) {
+    private Function<List<String>, boolean> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            float[] em = getEmbedding(t);
+            boolean b = getEmbedding(t[0], t[1]);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
-            return em;
+            return b;
         };
     }
 
@@ -168,15 +161,15 @@ public class EmbeddingModelClient {
         return Math.sqrt(sumOfSquaredDifferences);
     }
 
-    public float[] getEmbedding(String text) {
+    public boolean getEmbedding(String s1, String s2) {
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(text))
+                .body(new GradioRequest(s1, s2))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
         }
-        return response.getBody().getEmbedding();
+        return response.getBody().isRelated();
     }
 
     @Getter
@@ -185,13 +178,18 @@ public class EmbeddingModelClient {
 
         GradioRequest(String... data) {
             this.data = data;
+
         }
     }
 
     @Value
     private static class GradioResponse {
-        List<String> data;
+        String data;
 
+      
+        public boolean isRelated(){
+            return data == "1"
+        }
         public float[] getEmbedding() {
             String d = data.get(0);
             String[] emStr = d.substring(1, d.length() - 1).split(",");

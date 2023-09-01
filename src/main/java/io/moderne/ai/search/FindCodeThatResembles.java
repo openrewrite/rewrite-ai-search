@@ -51,11 +51,10 @@ public class FindCodeThatResembles extends Recipe {
             example = "kong.unirest.* *(..)")
     List<String> methodFilters;
 
-    @Option(displayName = "Hugging Face token",
-            description = "The token to use for the HuggingFace API. Create a " +
-                          "[read token](https://huggingface.co/settings/tokens).",
-            example = "hf_*****")
-    String huggingFaceToken;
+     @Option(displayName = "Threshold",
+            description = "How confident you want the model to be, must be a float between 0 and 1",
+            example = "0.5")
+    String threshold;
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
@@ -118,8 +117,10 @@ public class FindCodeThatResembles extends Recipe {
                     return super.visitMethodInvocation(method, ctx);
                 }
 
-                EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance(huggingFaceToken)
-                        .getRelatedness(resembles, method.printTrimmed(getCursor()));
+                
+                Double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
+                EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance()
+                        .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
                 for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
