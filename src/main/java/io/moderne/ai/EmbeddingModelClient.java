@@ -19,6 +19,7 @@ import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
@@ -43,9 +44,9 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-     private final Map<List<String>, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<List<String>, Boolean>() {
+     private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
          @Override
-         protected boolean removeEldestEntry(java.util.Map.Entry<List<String>, Boolean> eldest) {
+         protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
              return size() > 1000;
          }
      });
@@ -119,19 +120,17 @@ public class EmbeddingModelClient {
         }
     }
 
-
     public Relatedness getRelatedness(String t1, String t2, double threshold) {
         List<Duration> timings = new ArrayList<>(2);
-        List<String> key = List.of(t1, t2);
-
-        boolean b1 = embeddingCache.computeIfAbsent(key, timeEmbedding(timings));
+        Embedding embedding = new Embedding(t1, t2, threshold);
+        boolean b1 = embeddingCache.computeIfAbsent(embedding, timeEmbedding(timings));
         return new Relatedness(b1, timings);
     }
 
-    private Function<List<String>, Boolean> timeEmbedding(List<Duration> timings) {
+    private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t.get(0), t.get(1));
+            boolean b = getEmbedding(t.t1, t.t2,t.threshold);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
@@ -139,10 +138,10 @@ public class EmbeddingModelClient {
         };
     }
 
-    public boolean getEmbedding(String s1, String s2) {
+    public boolean getEmbedding(String s1, String s2, double threshold) {
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(s1, s2))
+                .body(new GradioRequest(threshold, s1, s2))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
@@ -152,10 +151,17 @@ public class EmbeddingModelClient {
 
     @Getter
     private static class GradioRequest {
-        private final String[] data;
 
-        GradioRequest(String... data) {
+//        {
+//            "data": ["foo","bar"],
+//            "threshold": 0.5
+//        }
+        private final String[] data;
+        private final double threshold;
+
+        GradioRequest(double threshold, String... data) {
             this.data = data;
+            this.threshold = threshold;
 
         }
     }
@@ -174,5 +180,23 @@ public class EmbeddingModelClient {
     public static class Relatedness {
         boolean isRelated;
         List<Duration> embeddingTimings;
+
+        public Relatedness(boolean b1, List<Duration> timings) {
+            this.isRelated = b1;
+            this.embeddingTimings = timings;
+        }
+    }
+
+    @Value
+    public class Embedding {
+        String t1;
+        String t2;
+        double threshold;
+
+        public Embedding(String t1, String t2, double threshold) {
+            this.t1 = t1;
+            this.t2 = t2;
+            this.threshold = threshold;
+        }
     }
 }
