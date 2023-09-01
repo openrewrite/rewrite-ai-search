@@ -21,7 +21,6 @@ import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import lombok.Getter;
 import lombok.Value;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.io.*;
@@ -120,45 +119,24 @@ public class EmbeddingModelClient {
         }
     }
 
-    public boolean isRelated(String t1, String t2) {
-        return isRelated(t1, t2, RELATED_THRESHOLD);
-    }
-
-    // public boolean isRelated(String t1, String t2, double threshold) {
-    //     float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
-    //     float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
-    //     return dist(e1, e2) <= threshold;
-    // }
-
 
     public Relatedness getRelatedness(String t1, String t2, double threshold) {
         List<Duration> timings = new ArrayList<>(2);
-        boolean b1 = embeddingCache.computeIfAbsent(List.of(t1, t2), timeEmbedding(timings));
-        // float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
+        List<String> key = List.of(t1, t2);
+
+        boolean b1 = embeddingCache.computeIfAbsent(key, timeEmbedding(timings));
         return new Relatedness(b1, timings);
     }
 
-    private Function<List<String>, boolean> timeEmbedding(List<Duration> timings) {
+    private Function<List<String>, Boolean> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t[0], t[1]);
+            boolean b = getEmbedding(t.get(0), t.get(1));
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
             return b;
         };
-    }
-
-    private static double dist(float[] v1, float[] v2) {
-        if (v1.length != v2.length) {
-            throw new IllegalArgumentException("Vectors must have the same dimension");
-        }
-        float sumOfSquaredDifferences = 0.0f;
-        for (int i = 0; i < v1.length; i++) {
-            float diff = v1[i] - v2[i];
-            sumOfSquaredDifferences += diff * diff;
-        }
-        return Math.sqrt(sumOfSquaredDifferences);
     }
 
     public boolean getEmbedding(String s1, String s2) {
@@ -188,16 +166,7 @@ public class EmbeddingModelClient {
 
       
         public boolean isRelated(){
-            return data == "1"
-        }
-        public float[] getEmbedding() {
-            String d = data.get(0);
-            String[] emStr = d.substring(1, d.length() - 1).split(",");
-            float[] em = new float[emStr.length];
-            for (int i = 0; i < emStr.length; i++) {
-                em[i] = Float.parseFloat(emStr[i]);
-            }
-            return em;
+            return data == "1";
         }
     }
 

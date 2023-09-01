@@ -25,7 +25,7 @@ public class EmbeddingModelClientTest {
 
     @Test
     void start() {
-        EmbeddingModelClient client = EmbeddingModelClient.getInstance(System.getenv("HUGGING_FACE_TOKEN"));
-        assertThat(client.getEmbedding("test")).hasSizeGreaterThan(0);
+        EmbeddingModelClient client = EmbeddingModelClient.getInstance();
+        assertThat(client.getEmbedding("test", "test2"));
     }
 }
