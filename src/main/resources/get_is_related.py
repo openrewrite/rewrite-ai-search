@@ -28,7 +28,7 @@ from abc import ABC, abstractmethod
 import gradio as gr # 3.23.0
 import huggingface_hub
 import math
-
+#
 # HUGGING_FACE_TOKEN = os.environ.get('HUGGING_FACE_TOKEN') #don't need this anymore
 # huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
 logging.set_verbosity_error()
@@ -187,7 +187,7 @@ class CustomModel(nn.Module):
 
 #initialize models
 bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN)#embedding model
-PATH = "/home/mila/j/justine.gehring/moderne/torch_model_42"
+PATH = "torch_model"
 #custom layer on top
 model = CustomModel()
 model.load_state_dict(torch.load(PATH))
