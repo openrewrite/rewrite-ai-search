@@ -15,10 +15,10 @@
 #
 
 import os
-os.environ["XDG_CACHE_HOME"]="/Users/juju/Desktop/HF_CACHE"
-os.environ["HF_HOME"]="/Users/juju/Desktop/HF_CACHE/huggingface"
-os.environ["HUGGINGFACE_HUB_CACHE"]="/Users/juju/Desktop/HF_CACHE/huggingface/hub"
-os.environ["TRANSFORMERS_CACHE"]="/Users/juju/Desktop/HF_CACHE/huggingface"
+os.environ["XDG_CACHE_HOME"]=os.expanduser("~") + ".hfcache/HF_CACHE"
+os.environ["HF_HOME"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface"
+os.environ["HUGGINGFACE_HUB_CACHE"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface/hub"
+os.environ["TRANSFORMERS_CACHE"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface"
 import torch #pytorch = 2.0.1
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
@@ -27,7 +27,7 @@ import gradio as gr # 3.23.0
 import huggingface_hub
 import math
 #
-HUGGING_FACE_TOKEN = os.environ.get("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") #don't need this anymore
+HUGGING_FACE_TOKEN = "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" #don't need this anymore
 huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
 logging.set_verbosity_error()
 
@@ -184,7 +184,7 @@ class CustomModel(nn.Module):
         return x
 
 #initialize models
-print(os.getenv())
+# print(os.getenv())
 bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN)#embedding model
 PATH = "torch_model"
 #custom layer on top

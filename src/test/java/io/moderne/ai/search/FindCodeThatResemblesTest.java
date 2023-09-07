@@ -15,7 +15,7 @@
  */
 package io.moderne.ai.search;
 
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;

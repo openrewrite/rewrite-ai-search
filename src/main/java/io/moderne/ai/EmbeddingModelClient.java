@@ -28,6 +28,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +38,7 @@ import java.util.function.Function;
 import static java.util.Objects.requireNonNull;
 
 public class EmbeddingModelClient {
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
     private static final double RELATED_THRESHOLD = 0.0755;
 
@@ -69,15 +70,14 @@ public class EmbeddingModelClient {
 
     private void start() {
         Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
+        Path torchPath = MODELS_DIR.resolve("torch_model");
         try {
-            if (!Files.exists(pyLauncher)) {
-                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher);
-//                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), pyLauncher);
-            }
+            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             System.out.println("here");
-            String cmd = String.format("python3 %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("/opt/homebrew/bin/python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -86,12 +86,11 @@ public class EmbeddingModelClient {
                         .forEach(procOut::println);
             });
 
-
             if (!checkForUp(proc)) {
                 System.out.println("about to flush");
                 EXECUTOR_SERVICE.shutdown();
                 procOut.flush();
-                System.out.println("" + procOut.toString());
+                System.out.println(sw.getBuffer());
                 throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
             }
         } catch (IOException e) {
