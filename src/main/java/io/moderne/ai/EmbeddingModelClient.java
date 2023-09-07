@@ -72,11 +72,12 @@ public class EmbeddingModelClient {
         try {
             if (!Files.exists(pyLauncher)) {
                 Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher);
+//                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), pyLauncher);
             }
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-
-            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
+            System.out.println("here");
+            String cmd = String.format("python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -85,7 +86,12 @@ public class EmbeddingModelClient {
                         .forEach(procOut::println);
             });
 
+
             if (!checkForUp(proc)) {
+                System.out.println("about to flush");
+                EXECUTOR_SERVICE.shutdown();
+                procOut.flush();
+                System.out.println("" + procOut.toString());
                 throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
             }
         } catch (IOException e) {
@@ -94,6 +100,7 @@ public class EmbeddingModelClient {
     }
 
     private boolean checkForUp(Process proc) {
+        System.out.println("entering check for up");
         for (int i = 0; i < 60; i++) {
             try {
                 if (!proc.isAlive() && proc.exitValue() != 0) {
@@ -101,9 +108,11 @@ public class EmbeddingModelClient {
                 }
 
                 if (checkForUpRequest() == 200) {
+                    System.out.println("exited loop with true");
                     return true;
                 }
                 Thread.sleep(1_000);
+
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

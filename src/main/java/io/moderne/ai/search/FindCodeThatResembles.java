@@ -20,7 +20,7 @@ import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
-import org.openrewrite.internal.lang.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
@@ -121,7 +121,7 @@ public class FindCodeThatResembles extends Recipe {
                 Double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
                 EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
-                for (Duration timing : related.getEmbeddingTimings()) {
+                for (Duration timing : related.getEmbeddingTimings()) { //TODO: getEmbeddingTimings doesn't exists anymore
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
                     AtomicLong max = getCursor().getNearestMessage("max");
