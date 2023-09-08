@@ -19,8 +19,6 @@ import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
-import lombok.Data;
-import lombok.Getter;
 import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
 
@@ -40,7 +38,6 @@ import static java.util.Objects.requireNonNull;
 public class EmbeddingModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
-    private static final double RELATED_THRESHOLD = 0.0755;
 
     @Nullable
     private static EmbeddingModelClient INSTANCE;
@@ -76,8 +73,7 @@ public class EmbeddingModelClient {
             Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            System.out.println("here");
-            String cmd = String.format("/opt/homebrew/bin/python3 %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -87,10 +83,6 @@ public class EmbeddingModelClient {
             });
 
             if (!checkForUp(proc)) {
-                System.out.println("about to flush");
-                EXECUTOR_SERVICE.shutdown();
-                procOut.flush();
-                System.out.println(sw.getBuffer());
                 throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
             }
         } catch (IOException e) {
@@ -99,19 +91,15 @@ public class EmbeddingModelClient {
     }
 
     private boolean checkForUp(Process proc) {
-        System.out.println("entering check for up");
         for (int i = 0; i < 60; i++) {
             try {
                 if (!proc.isAlive() && proc.exitValue() != 0) {
                     return false;
                 }
-
                 if (checkForUpRequest() == 200) {
-                    System.out.println("exited loop with true");
                     return true;
                 }
                 Thread.sleep(1_000);
-
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -147,9 +135,10 @@ public class EmbeddingModelClient {
     }
 
     public boolean getEmbedding(String s1, String s2, double threshold) {
+
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(threshold, s1, s2))
+                .body(new GradioRequest(new Object[]{s1, s2, threshold}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
@@ -157,30 +146,16 @@ public class EmbeddingModelClient {
         return response.getBody().isRelated();
     }
 
-    @Getter
+    @Value
     private static class GradioRequest {
-
-//        {
-//            "data": ["foo","bar"],
-//            "threshold": 0.5
-//        }
-        private final String[] data;
-        private final double threshold;
-
-        GradioRequest(double threshold, String... data) {
-            this.data = data;
-            this.threshold = threshold;
-
-        }
+        Object[] data;
     }
-
     @Value
     private static class GradioResponse {
-        String data;
+        String[] data;
 
-      
         public boolean isRelated(){
-            return data == "1";
+            return data[0].equals("1");
         }
     }
 
@@ -196,7 +171,7 @@ public class EmbeddingModelClient {
     }
 
     @Value
-    public class Embedding {
+    public static class Embedding {
         String t1;
         String t2;
         double threshold;

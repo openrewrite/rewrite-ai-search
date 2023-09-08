@@ -15,10 +15,10 @@
 #
 
 import os
-os.environ["XDG_CACHE_HOME"]=os.expanduser("~") + ".hfcache/HF_CACHE"
-os.environ["HF_HOME"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface"
-os.environ["HUGGINGFACE_HUB_CACHE"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface/hub"
-os.environ["TRANSFORMERS_CACHE"]=os.expanduser("~") + ".hfcache/HF_CACHE/huggingface"
+os.environ["XDG_CACHE_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE"
+os.environ["HF_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
+os.environ["HUGGINGFACE_HUB_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface/hub"
+os.environ["TRANSFORMERS_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
 import torch #pytorch = 2.0.1
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
@@ -26,9 +26,10 @@ from abc import ABC, abstractmethod
 import gradio as gr # 3.23.0
 import huggingface_hub
 import math
+
 #
-HUGGING_FACE_TOKEN = "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" #don't need this anymore
-huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
+# HUGGING_FACE_TOKEN = "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" #don't need this anymore
+# huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
 logging.set_verbosity_error()
 
 #encoder models
@@ -186,18 +187,18 @@ class CustomModel(nn.Module):
 #initialize models
 # print(os.getenv())
 bigcode_model = BigCodeEncoder("cpu", MAX_TOKEN_LEN)#embedding model
-PATH = "torch_model"
+PATH = os.path.expanduser("~")+"/.moderne/models/torch_model"
 #custom layer on top
 model = CustomModel()
 model.load_state_dict(torch.load(PATH))
 model.eval()
 #GRADIO
 
-def is_related(query, code, threshold=0.5):
+def is_related(threshold, query, code)#, threshold=0.5):
     assert threshold>=0 and threshold<=1
     with torch.no_grad(): #no need to keep track of the gradients
-        q_emb = bigcode_model.encode([query])[0]
-        c_emb = bigcode_model.encode([code])[0]
+        q_emb =  torch.from_numpy(bigcode_model.encode([query])[0])
+        c_emb =  torch.from_numpy(bigcode_model.encode([code])[0])
         X_input = torch.cat((q_emb, c_emb))
         y_pred = model(X_input)
         return math.floor(y_pred) if y_pred < threshold else math.ceil(y_pred)
@@ -208,4 +209,4 @@ def query_embedding(query):
     embedding = bigcode_model.encode([query])
     return str(list(embedding[0]))
 
-gr.Interface(fn=is_related, inputs=["text", "text", "number"], outputs="text").launch()
+gr.Interface(fn=is_related, inputs=["number", "text", "text"], outputs="text").launch()
