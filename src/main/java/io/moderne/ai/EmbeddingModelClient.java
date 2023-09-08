@@ -19,15 +19,14 @@ import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
-import lombok.Getter;
 import lombok.Value;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -37,19 +36,18 @@ import java.util.function.Function;
 import static java.util.Objects.requireNonNull;
 
 public class EmbeddingModelClient {
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newSingleThreadExecutor();
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
-    private static final double RELATED_THRESHOLD = 0.0755;
 
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-    private final Map<String, float[]> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<String, float[]>() {
-        @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<String, float[]> eldest) {
-            return size() > 1000;
-        }
-    });
+     private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
+         @Override
+         protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
+             return size() > 1000;
+         }
+     });
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
@@ -57,30 +55,25 @@ public class EmbeddingModelClient {
         }
     }
 
-    public static synchronized EmbeddingModelClient getInstance(String huggingFaceToken) {
+    public static synchronized EmbeddingModelClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new EmbeddingModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                INSTANCE.start(huggingFaceToken);
+                INSTANCE.start();
             }
         }
         return INSTANCE;
     }
 
-    private void start(String huggingFaceToken) {
-        if (StringUtils.isBlank(huggingFaceToken)) {
-            throw new IllegalArgumentException("Hugging face token is empty.");
-        }
-
-        Path pyLauncher = MODELS_DIR.resolve("get_em.py");
+    private void start() {
+        Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
+        Path torchPath = MODELS_DIR.resolve("torch_model");
         try {
-            if (!Files.exists(pyLauncher)) {
-                Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_em.py")), pyLauncher);
-            }
+            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-
-            String cmd = String.format("HUGGING_FACE_TOKEN=%s /usr/bin/python3 %s/get_em.py", huggingFaceToken, MODELS_DIR);
+            String cmd = String.format("python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -103,7 +96,6 @@ public class EmbeddingModelClient {
                 if (!proc.isAlive() && proc.exitValue() != 0) {
                     return false;
                 }
-
                 if (checkForUpRequest() == 200) {
                     return true;
                 }
@@ -124,82 +116,46 @@ public class EmbeddingModelClient {
         }
     }
 
-    public boolean isRelated(String t1, String t2) {
-        return isRelated(t1, t2, RELATED_THRESHOLD);
-    }
-
-    public boolean isRelated(String t1, String t2, double threshold) {
-        float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
-        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
-        return dist(e1, e2) <= threshold;
-    }
-
-    public Relatedness getRelatedness(String t1, String t2) {
-        return getRelatedness(t1, t2, RELATED_THRESHOLD);
-    }
-
     public Relatedness getRelatedness(String t1, String t2, double threshold) {
         List<Duration> timings = new ArrayList<>(2);
-        float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
-        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
-        return new Relatedness(dist(e1, e2) <= threshold, timings);
+        Embedding embedding = new Embedding(t1, t2, threshold);
+        boolean b1 = embeddingCache.computeIfAbsent(embedding, timeEmbedding(timings));
+        return new Relatedness(b1, timings);
     }
 
-    private Function<String, float[]> timeEmbedding(List<Duration> timings) {
+    private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            float[] em = getEmbedding(t);
+            boolean b = getEmbedding(t.t1, t.t2,t.threshold);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
-            return em;
+            return b;
         };
     }
 
-    private static double dist(float[] v1, float[] v2) {
-        if (v1.length != v2.length) {
-            throw new IllegalArgumentException("Vectors must have the same dimension");
-        }
-        float sumOfSquaredDifferences = 0.0f;
-        for (int i = 0; i < v1.length; i++) {
-            float diff = v1[i] - v2[i];
-            sumOfSquaredDifferences += diff * diff;
-        }
-        return Math.sqrt(sumOfSquaredDifferences);
-    }
+    public boolean getEmbedding(String s1, String s2, double threshold) {
 
-    public float[] getEmbedding(String text) {
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(text))
+                .body(new GradioRequest(new Object[]{s1, s2, threshold}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
         }
-        return response.getBody().getEmbedding();
-    }
-
-    @Getter
-    private static class GradioRequest {
-        private final String[] data;
-
-        GradioRequest(String... data) {
-            this.data = data;
-        }
+        return response.getBody().isRelated();
     }
 
     @Value
+    private static class GradioRequest {
+        Object[] data;
+    }
+    @Value
     private static class GradioResponse {
-        List<String> data;
+        String[] data;
 
-        public float[] getEmbedding() {
-            String d = data.get(0);
-            String[] emStr = d.substring(1, d.length() - 1).split(",");
-            float[] em = new float[emStr.length];
-            for (int i = 0; i < emStr.length; i++) {
-                em[i] = Float.parseFloat(emStr[i]);
-            }
-            return em;
+        public boolean isRelated(){
+            return data[0].equals("1");
         }
     }
 
@@ -207,5 +163,23 @@ public class EmbeddingModelClient {
     public static class Relatedness {
         boolean isRelated;
         List<Duration> embeddingTimings;
+
+        public Relatedness(boolean b1, List<Duration> timings) {
+            this.isRelated = b1;
+            this.embeddingTimings = timings;
+        }
+    }
+
+    @Value
+    public static class Embedding {
+        String t1;
+        String t2;
+        double threshold;
+
+        public Embedding(String t1, String t2, double threshold) {
+            this.t1 = t1;
+            this.t2 = t2;
+            this.threshold = threshold;
+        }
     }
 }
