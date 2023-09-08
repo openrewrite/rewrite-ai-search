@@ -28,7 +28,7 @@ import huggingface_hub
 import math
 
 #
-# HUGGING_FACE_TOKEN = "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" #don't need this anymore
+# HUGGING_FACE_TOKEN = "" #don't need this anymore
 # huggingface_hub.login(HUGGING_FACE_TOKEN) #don't need this anymore
 logging.set_verbosity_error()
 
