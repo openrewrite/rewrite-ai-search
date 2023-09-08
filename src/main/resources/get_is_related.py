@@ -194,7 +194,7 @@ model.load_state_dict(torch.load(PATH))
 model.eval()
 #GRADIO
 
-def is_related(threshold, query, code)#, threshold=0.5):
+def is_related(query, code, threshold=0.5):
     assert threshold>=0 and threshold<=1
     with torch.no_grad(): #no need to keep track of the gradients
         q_emb =  torch.from_numpy(bigcode_model.encode([query])[0])
@@ -209,4 +209,4 @@ def query_embedding(query):
     embedding = bigcode_model.encode([query])
     return str(list(embedding[0]))
 
-gr.Interface(fn=is_related, inputs=["number", "text", "text"], outputs="text").launch()
+gr.Interface(fn=is_related, inputs=["text", "text", "number"], outputs="text").launch()
