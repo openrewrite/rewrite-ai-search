@@ -30,18 +30,16 @@ public class FindCodeThatResemblesTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        System.out.println("in test defaults");
         spec.recipe(new FindCodeThatResembles(
           "HTTP request with Content-Type application/json",
           List.of("kong.unirest.* *(..)", "okhttp*..* *(..)", "org.springframework.web.reactive.function.client.WebClient *(..)",
             "org.apache.hc..* *(..)", "org.apache.http.client..* *(..)"),
-          ".2"
+          "0.0"
         ));
     }
 
     @Test
     void unirest() {
-        System.out.println("in test unirest");
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
           //language=java
@@ -74,7 +72,6 @@ public class FindCodeThatResemblesTest implements RewriteTest {
 
     @Test
     void unirest2() {
-        System.out.println("in test unirest2");
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
           //language=java
