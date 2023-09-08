@@ -12,7 +12,7 @@ dependencies {
     implementation("org.openrewrite:rewrite-core:latest.release")
     implementation("org.openrewrite:rewrite-java:latest.release")
     implementation("com.konghq:unirest-java:3.14.2")
-    implementation("org.testng:testng:7.8.0")
+    implementation("org.testng:testng:6.11")
     testRuntimeOnly("org.openrewrite:rewrite-java-17")
 
 }
