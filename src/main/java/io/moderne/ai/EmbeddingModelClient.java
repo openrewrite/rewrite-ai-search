@@ -42,12 +42,12 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-     private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
-         @Override
-         protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
-             return size() > 1000;
-         }
-     });
+    private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
+        @Override
+        protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
+            return size() > 1000;
+        }
+    });
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
@@ -126,7 +126,7 @@ public class EmbeddingModelClient {
     private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t.t1, t.t2,t.threshold);
+            boolean b = getEmbedding(t.t1, t.t2, t.threshold);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
@@ -135,7 +135,6 @@ public class EmbeddingModelClient {
     }
 
     public boolean getEmbedding(String s1, String s2, double threshold) {
-
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
                 .body(new GradioRequest(new Object[]{s1, s2, threshold}))
@@ -150,11 +149,12 @@ public class EmbeddingModelClient {
     private static class GradioRequest {
         Object[] data;
     }
+
     @Value
     private static class GradioResponse {
         String[] data;
 
-        public boolean isRelated(){
+        public boolean isRelated() {
             return data[0].equals("1");
         }
     }
@@ -163,11 +163,6 @@ public class EmbeddingModelClient {
     public static class Relatedness {
         boolean isRelated;
         List<Duration> embeddingTimings;
-
-        public Relatedness(boolean b1, List<Duration> timings) {
-            this.isRelated = b1;
-            this.embeddingTimings = timings;
-        }
     }
 
     @Value
@@ -175,11 +170,5 @@ public class EmbeddingModelClient {
         String t1;
         String t2;
         double threshold;
-
-        public Embedding(String t1, String t2, double threshold) {
-            this.t1 = t1;
-            this.t2 = t2;
-            this.threshold = threshold;
-        }
     }
 }

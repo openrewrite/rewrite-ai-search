@@ -19,8 +19,8 @@ import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.*;
 import org.jetbrains.annotations.Nullable;
+import org.openrewrite.*;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
 
@@ -116,12 +115,11 @@ public class FindCodeThatResembles extends Recipe {
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
-
                 
-                Double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
+                double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
                 EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
-                for (Duration timing : related.getEmbeddingTimings()) { //TODO: getEmbeddingTimings doesn't exists anymore
+                for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
                     AtomicLong max = getCursor().getNearestMessage("max");
