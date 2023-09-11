@@ -24,7 +24,7 @@ os.environ["TRANSFORMERS_CACHE"]=os.path.expanduser("~") + "/HF_CACHE/huggingfac
 locations = []
 lookfor = "HF_CACHE"
 for root, dirs, files in os.walk('/'):
-    if lookfor in files:
+    if lookfor in dirs:
         locations.append(join(root, lookfor))
 
 raise Exception("os path expanduser is " + os.path.expanduser("~")+"\nAnd we found HF_CACHE at "+ str(locations))
