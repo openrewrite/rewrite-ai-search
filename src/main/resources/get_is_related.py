@@ -16,18 +16,17 @@
 
 import os
 from os.path import join
-os.environ["XDG_CACHE_HOME"]=os.path.expanduser("~") + "/HF_CACHE"
-os.environ["HF_HOME"]=os.path.expanduser("~") + "/HF_CACHE/huggingface"
-os.environ["HUGGINGFACE_HUB_CACHE"]=os.path.expanduser("~") + "/HF_CACHE/huggingface/hub"
-os.environ["TRANSFORMERS_CACHE"]=os.path.expanduser("~") + "/HF_CACHE/huggingface"
-
-locations = []
-lookfor = "HF_CACHE"
-for root, dirs, files in os.walk('/'):
-    if lookfor in dirs:
-        locations.append(join(root, lookfor))
-
-raise Exception("os path expanduser is " + os.path.expanduser("~")+"\nAnd we found HF_CACHE at "+ str(locations))
+os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
+os.environ["HF_HOME"]="/HF_CACHE/huggingface"
+os.environ["HUGGINGFACE_HUB_CACHE"]="/HF_CACHE/huggingface/hub"
+os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
+# locations = []
+# lookfor = "HF_CACHE"
+# for root, dirs, files in os.walk('/'):
+#     if lookfor in dirs:
+#         locations.append(join(root, lookfor))
+#
+# raise Exception("os path expanduser is " + os.path.expanduser("~")+"\nAnd we found HF_CACHE at "+ str(locations))
 import torch #pytorch = 2.0.1
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
