@@ -73,7 +73,7 @@ public class EmbeddingModelClient {
             Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
