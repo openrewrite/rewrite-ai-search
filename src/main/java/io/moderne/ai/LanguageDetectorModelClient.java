@@ -96,7 +96,7 @@ public class LanguageDetectorModelClient {
     }
 
     private boolean checkForUp(Process proc) {
-        for (int i = 0; i < 60; i++) {
+        for (int i = 0; i < 180; i++) {
             try {
                 if (!proc.isAlive() && proc.exitValue() != 0) {
                     return false;
