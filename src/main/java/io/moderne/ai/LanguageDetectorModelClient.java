@@ -35,16 +35,16 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-public class EmbeddingModelClient {
+public class LanguageDetectorModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
 
     @Nullable
-    private static EmbeddingModelClient INSTANCE;
+    private static LanguageDetectorModelClient INSTANCE;
 
-    private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
+    private final Map<Comment, String> languageCache = Collections.synchronizedMap(new LinkedHashMap<Comment, String>() {
         @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<Comment, String> eldest) {
             return size() > 1000;
         }
     });
@@ -55,9 +55,9 @@ public class EmbeddingModelClient {
         }
     }
 
-    public static synchronized EmbeddingModelClient getInstance()  {
+    public static synchronized LanguageDetectorModelClient getInstance()  {
         if (INSTANCE == null) {
-            INSTANCE = new EmbeddingModelClient();
+            INSTANCE = new LanguageDetectorModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
                 try {
@@ -72,18 +72,13 @@ public class EmbeddingModelClient {
     }
 
     private void start() {
-        Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
-        Path torchPath = MODELS_DIR.resolve("torch_model");
-        System.out.println("models dir: "+MODELS_DIR);
-        System.out.println("get is related dir: "+pyLauncher);
-        System.out.println("torch dir: "+ torchPath);
+        Path pyLauncher = MODELS_DIR.resolve("get_language.py");
         try {
-            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(LanguageDetectorModelClient.class.getResourceAsStream("/get_language.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-//            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
-            String cmd = String.format("python %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
+//            String cmd = String.format("python %s/get_language.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -119,24 +114,24 @@ public class EmbeddingModelClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7860").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7861").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
         }
     }
 
-    public Relatedness getRelatedness(String t1, String t2, double threshold) {
+    public Language getLanguage(String t1) {
         List<Duration> timings = new ArrayList<>(2);
-        Embedding embedding = new Embedding(t1, t2, threshold);
-        boolean b1 = embeddingCache.computeIfAbsent(embedding, timeEmbedding(timings));
-        return new Relatedness(b1, timings);
+        Comment comment = new Comment(t1);
+        String b1 = languageCache.computeIfAbsent(comment, timeLanguage(timings));
+        return new Language(b1, timings);
     }
 
-    private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
+    private Function<Comment, String> timeLanguage(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t.t1, t.t2, t.threshold);
+            String b = getLanguageGradio(t.t1);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
@@ -144,15 +139,15 @@ public class EmbeddingModelClient {
         };
     }
 
-    public boolean getEmbedding(String s1, String s2, double threshold) {
-        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
+    public String getLanguageGradio(String s1) {
+        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7861/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(new Object[]{s1, s2, threshold}))
+                .body(new GradioRequest(new Object[]{s1}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
         }
-        return response.getBody().isRelated();
+        return response.getBody().getLanguage();
     }
 
     @Value
@@ -163,22 +158,19 @@ public class EmbeddingModelClient {
     @Value
     private static class GradioResponse {
         String[] data;
-
-        public boolean isRelated() {
-            return data[0].equals("1");
+        public String getLanguage() {
+            return data[0];
         }
     }
 
     @Value
-    public static class Relatedness {
-        boolean isRelated;
-        List<Duration> embeddingTimings;
+    public static class Language {
+        String language;
+        List<Duration> LanguageTimings;
     }
 
     @Value
-    public static class Embedding {
+    public static class Comment {
         String t1;
-        String t2;
-        double threshold;
     }
 }

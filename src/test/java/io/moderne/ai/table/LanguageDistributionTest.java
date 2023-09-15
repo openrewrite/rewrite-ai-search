@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai;
+package io.moderne.ai.table;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.time.Duration;
 
-@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class LanguageDetectorModelClientTest {
+public class LanguageDistributionTest {
+
     @Test
-    void start() {
-        LanguageDetectorModelClient client = LanguageDetectorModelClient.getInstance();
-        assertThat(client.getLanguageGradio("On fait un essai").equals("fr"));
+    void Row() {
+        LanguageDistribution.Row row = new LanguageDistribution.Row("file", "comment", "language");
     }
 }

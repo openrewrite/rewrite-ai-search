@@ -55,10 +55,16 @@ public class EmbeddingModelClient {
         }
     }
 
-    public static synchronized EmbeddingModelClient getInstance() {
+    public static synchronized EmbeddingModelClient getInstance()  {
         if (INSTANCE == null) {
             INSTANCE = new EmbeddingModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
+                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+                try {
+                    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 INSTANCE.start();
             }
         }
@@ -74,6 +80,7 @@ public class EmbeddingModelClient {
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
+//            String cmd = String.format("python %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
