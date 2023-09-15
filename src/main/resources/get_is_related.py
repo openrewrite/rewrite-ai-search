@@ -20,6 +20,10 @@ os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
 os.environ["HF_HOME"]="/HF_CACHE/huggingface"
 os.environ["HUGGINGFACE_HUB_CACHE"]="/HF_CACHE/huggingface/hub"
 os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
+# os.environ["XDG_CACHE_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE"
+# os.environ["HF_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
+# os.environ["HUGGINGFACE_HUB_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface/hub"
+# os.environ["TRANSFORMERS_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
 import torch #pytorch = 2.0.1
 from typing import List, Union, Dict
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
