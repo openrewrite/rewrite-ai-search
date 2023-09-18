@@ -145,7 +145,7 @@ public class LanguageDetectorModelClient {
                 .body(new GradioRequest(new Object[]{s1}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
+            throw new IllegalStateException("Unable to get language. HTTP " + response.getStatus());
         }
         return response.getBody().getLanguage();
     }
