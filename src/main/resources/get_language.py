@@ -31,7 +31,11 @@ pipe = pipeline("text-classification", model="papluca/xlm-roberta-base-language-
 tokenizer_kwargs = {'truncation':True, 'max_length':512}
 
 def get_language(comment):
-    lang = pipe(comment, **tokenizer_kwargs)[0]["label"]
+    lang = pipe(comment, **tokenizer_kwargs)[0]
+    confidence = lang["score"]
+    lang = lang["label"]
+    if confidence <= 0.5:
+        return "unknown"
     return lang
 
 gr.Interface(fn=get_language, inputs=["text"], outputs="text").launch(server_port=7861)
