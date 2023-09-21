@@ -25,7 +25,7 @@ public class LanguageDistribution extends DataTable<LanguageDistribution.Row> {
 
     public LanguageDistribution(Recipe recipe) {
         super(recipe,
-                "Language Distribution",
+                "Comment language distribution",
                 "Shows the distribution of language in comments");
     }
 
