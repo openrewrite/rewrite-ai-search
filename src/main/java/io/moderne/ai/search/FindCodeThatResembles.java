@@ -51,8 +51,8 @@ public class FindCodeThatResembles extends Recipe {
     List<String> methodFilters;
 
      @Option(displayName = "Threshold",
-            description = "Tunes the sensibility for matching. The lower the threshold, the stricter the matching is." +
-                          "The higher the threshold, the more matches.",
+            description = "Tunes the sensibility for matching. The lower the threshold, the stricter the matching is. " +
+                          "The higher the threshold, the more matches. Must be between 0 and 1.",
             example = "0.25")
     String threshold;
 
