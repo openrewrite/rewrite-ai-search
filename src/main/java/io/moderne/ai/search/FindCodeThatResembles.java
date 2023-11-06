@@ -51,8 +51,9 @@ public class FindCodeThatResembles extends Recipe {
     List<String> methodFilters;
 
      @Option(displayName = "Threshold",
-            description = "How confident you want the model to be, must be a float between 0 and 1",
-            example = "0.5")
+            description = "Tunes the sensibility for matching. The lower the threshold, the stricter the matching is." +
+                          "The higher the threshold, the more matches.",
+            example = "0.25")
     String threshold;
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
