@@ -38,19 +38,28 @@ logging.set_verbosity_error()
 tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-small-en-v1.5")
 model = AutoModel.from_pretrained("BAAI/bge-small-en-v1.5")
 model.eval()
-#GRADIO
+
+cache = {}
+def get_embedding(input_string):
+    global cache
+    with torch.no_grad():
+        if input_string not in cache.keys():
+            encoded_input = tokenizer([input_string], padding=True, truncation=True, return_tensors='pt')
+            model_output = model(**encoded_input)
+            # Perform pooling. In this case, cls pooling.
+            embedding = model_output[0][:, 0][0]
+            cache[input_string] = embedding
+            return embedding
+        else:
+            return cache[input_string]
 
 def is_related(query, code, threshold=0.30):
     assert threshold>=0 and threshold<=1
-    with torch.no_grad():
-        encoded_input = tokenizer([query,code], padding=True, truncation=True, return_tensors='pt')
-        model_output = model(**encoded_input)
-        # Perform pooling. In this case, cls pooling.
-        sentence_embeddings = model_output[0][:, 0]
+    sentence_embeddings = torch.stack([get_embedding(query), get_embedding(code)])
     # normalize embeddings
     sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
     cosine_distance = 1-torch.nn.functional.cosine_similarity(sentence_embeddings[0], sentence_embeddings[1], dim=0)
     return 1 if cosine_distance<=threshold else 0
 
-
+#GRADIO
 gr.Interface(fn=is_related, inputs=["text", "text", "number"], outputs="text").launch(server_port=7860)
