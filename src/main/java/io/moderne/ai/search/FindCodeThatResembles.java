@@ -46,12 +46,13 @@ public class FindCodeThatResembles extends Recipe {
 
     @Option(displayName = "Method filters",
             description = "Since AI based matching has a higher latency than rules based matching, " +
-                          "filter the methods that are searched for the `resembles` text.",
+                          "filter the methods that are searched for the `resembles` text. "+
+                          "You must include at least one method pattern.",
             example = "kong.unirest.* *(..)")
     List<String> methodFilters;
 
      @Option(displayName = "Threshold",
-            description = "Tunes the sensibility for matching. The lower the threshold, the stricter the matching is. " +
+            description = "Tunes the sensitivity for matching. The lower the threshold, the stricter the matching is. " +
                           "The higher the threshold, the more matches. Must be between 0 and 1, "+
                           "but we recommend between 0.15-0.35.",
             example = "0.25")
@@ -61,14 +62,13 @@ public class FindCodeThatResembles extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Find code that resembles a pattern";
+        return "Find method invocations that resemble a pattern";
     }
 
     @Override
     public String getDescription() {
-        return "This recipe uses a hybrid rules-based and AI approach to find " +
-               "code that resembles a pattern. The pattern can be expressed either " +
-               "in natural language or as a code sample.";
+        return "This recipe uses a hybrid rules-based and AI approach to find a method invocation" +
+               " that resembles a search string.";
     }
 
     @Override
