@@ -72,10 +72,8 @@ public class EmbeddingModelClient {
 
     private void start() {
         Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
-        Path torchPath = MODELS_DIR.resolve("torch_model");
         try {
             Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
