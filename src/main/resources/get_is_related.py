@@ -61,5 +61,18 @@ def is_related(query, code, threshold=0.30):
     cosine_distance = 1-torch.nn.functional.cosine_similarity(sentence_embeddings[0], sentence_embeddings[1], dim=0)
     return 1 if cosine_distance<=threshold else 0
 
+
 #GRADIO
-gr.Interface(fn=is_related, inputs=["text", "text", "number"], outputs="text").launch(server_port=7860)
+# gr.Interface(fn=is_related, inputs=["text", "text", "number"], outputs="text").launch(server_port=7860)
+def get_embedding(input_string):
+#     global cache
+    with torch.no_grad():
+
+        encoded_input = tokenizer([input_string], padding=True, truncation=True, return_tensors='pt')
+        model_output = model(**encoded_input)
+        # Perform pooling. In this case, cls pooling.
+        embedding = model_output[0][:, 0]
+        embedding = torch.nn.functional.normalize(embedding, p=2, dim=1)[0]
+        return embedding.tolist()
+
+gr.Interface(fn=get_embedding, inputs="text", outputs="text").launch(server_port=7860)

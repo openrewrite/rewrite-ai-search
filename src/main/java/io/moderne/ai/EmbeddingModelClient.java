@@ -42,13 +42,12 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-    private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
+    private final Map<String, float[]> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<String, float[]>() {
         @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
+        protected boolean removeEldestEntry(java.util.Map.Entry<String, float[]> eldest) {
             return size() > 1000;
         }
     });
-
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
             throw new IllegalStateException("Unable to create models directory at " + MODELS_DIR);
@@ -123,46 +122,73 @@ public class EmbeddingModelClient {
         }
     }
 
-    public Relatedness getRelatedness(String t1, String t2, double threshold) {
-        List<Duration> timings = new ArrayList<>(2);
-        Embedding embedding = new Embedding(t1, t2, threshold);
-        boolean b1 = embeddingCache.computeIfAbsent(embedding, timeEmbedding(timings));
-        return new Relatedness(b1, timings);
+    public boolean isRelated(String t1, String t2, double threshold) {
+        float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
+        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
+        return dist(e1, e2) <= threshold;
     }
 
-    private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
+    public Relatedness getRelatedness(String t1, String t2, double threshold) {
+        List<Duration> timings = new ArrayList<>(2);
+        float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
+        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), timeEmbedding(timings));
+        return new Relatedness(dist(e1, e2) <= threshold, timings);
+    }
+
+    private Function<String, float[]> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t.t1, t.t2, t.threshold);
+            float[] em = getEmbedding(t);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
-            return b;
+            return em;
         };
     }
 
-    public boolean getEmbedding(String s1, String s2, double threshold) {
+    private static double dist(float[] v1, float[] v2) {
+        if (v1.length != v2.length) {
+            throw new IllegalArgumentException("Vectors must have the same dimension");
+        }
+        float sumOfSquaredDifferences = 0.0f;
+        for (int i = 0; i < v1.length; i++) {
+            float diff = v1[i] - v2[i];
+            sumOfSquaredDifferences += diff * diff;
+        }
+        return 1-Math.sqrt(sumOfSquaredDifferences);
+    }
+
+    public float[] getEmbedding(String text) {
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(new Object[]{s1, s2, threshold}))
+                .body(new GradioRequest(text))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
         }
-        return response.getBody().isRelated();
+        return response.getBody().getEmbedding();
     }
 
-    @Value
     private static class GradioRequest {
-        Object[] data;
+        private final String[] data;
+
+        GradioRequest(String... data) {
+            this.data = data;
+        }
     }
 
     @Value
     private static class GradioResponse {
-        String[] data;
+        List<String> data;
 
-        public boolean isRelated() {
-            return data[0].equals("1");
+        public float[] getEmbedding() {
+            String d = data.get(0);
+            String[] emStr = d.substring(1, d.length() - 1).split(",");
+            float[] em = new float[emStr.length];
+            for (int i = 0; i < emStr.length; i++) {
+                em[i] = Float.parseFloat(emStr[i]);
+            }
+            return em;
         }
     }
 
@@ -170,12 +196,5 @@ public class EmbeddingModelClient {
     public static class Relatedness {
         boolean isRelated;
         List<Duration> embeddingTimings;
-    }
-
-    @Value
-    public static class Embedding {
-        String t1;
-        String t2;
-        double threshold;
     }
 }
