@@ -132,7 +132,7 @@ public class AgentRecommenderClient {
     }
 
     public ArrayList<String> getRecommendations(String text) {
-        Unirest.config().reset().connectTimeout(5000).socketTimeout(100000);
+        Unirest.config().reset().connectTimeout(5000).socketTimeout(1000000);
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7864/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
                 .body(new GradioRequest(text))
