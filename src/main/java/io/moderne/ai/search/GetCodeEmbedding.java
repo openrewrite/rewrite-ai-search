@@ -34,7 +34,7 @@ import org.openrewrite.java.tree.J;
 public class GetCodeEmbedding extends Recipe {
 
     @Option(displayName = "Code snippet type",
-            description = "Choose wether you want to get an embedding for the classes or methods.",
+            description = "Choose whether you want to get an embedding for the classes or methods.",
             example = "methods",
             valid = {"methods", "classes"})
     String codeSnippetType;
