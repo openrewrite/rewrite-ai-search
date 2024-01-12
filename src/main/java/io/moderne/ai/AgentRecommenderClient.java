@@ -15,12 +15,17 @@
  */
 package io.moderne.ai;
 
-import kong.unirest.HeaderNames;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import kong.unirest.*;
 import lombok.Value;
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ipc.http.HttpSender;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -32,13 +37,19 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
+import org.openrewrite.HttpSenderExecutionContextView;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import static java.util.Objects.requireNonNull;
 
 public class AgentRecommenderClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
-
+    private ObjectMapper mapper = JsonMapper.builder()
+            .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
+            .build()
+            .registerModule(new ParameterNamesModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     @Nullable
     private static AgentRecommenderClient INSTANCE;
 
@@ -118,31 +129,45 @@ public class AgentRecommenderClient {
         }
     }
 
+//    private Function<String, ArrayList<String>> timeEmbedding(List<Duration> timings) {
+//        return t -> {
+//            long start = System.nanoTime();
+//            ArrayList<String> recs= getRecommendations(t);
+//            if (timings.isEmpty()) {
+//                timings.add(Duration.ofNanos(System.nanoTime() - start));
+//            }
+//            return recs;
+//        };
+//    }
 
+    public ArrayList<String> getRecommendations(String text)  {
 
-    private Function<String, ArrayList<String>> timeEmbedding(List<Duration> timings) {
-        return t -> {
-            long start = System.nanoTime();
-            ArrayList<String> recs= getRecommendations(t);
-            if (timings.isEmpty()) {
-                timings.add(Duration.ofNanos(System.nanoTime() - start));
-            }
-            return recs;
-        };
-    }
+        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(60), Duration.ofSeconds(220));
+        HttpSender.Response raw = null;
 
-    public ArrayList<String> getRecommendations(String text) {
-        Unirest.config().reset().connectTimeout(5000).socketTimeout(1000000);
-        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7864/run/predict")
-                .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(text))
-                .asObject(GradioResponse.class);
-        if (!response.isSuccess()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
+        try {
+            raw = http
+                   .post("http://127.0.0.1:7864/run/predict")
+                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text)))
+                   .send();
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException(e);
         }
-        return response.getBody().getRecommendations();
-    }
 
+
+        if (!raw.isSuccessful()) {
+            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+        }
+        ArrayList<String> recs = null;
+        try {
+            recs = mapper.readValue(raw.getBodyAsBytes(), GradioResponse.class).getRecommendations();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return recs;
+    }
+    @Value
     private static class GradioRequest {
         private final String[] data;
 
