@@ -26,7 +26,7 @@ public class GetRecommendationsTest implements RewriteTest {
 
     @Test
     void methods() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations()),
+        rewriteRun( spec -> spec.recipe(new GetRecommendations(8)),
           java("""
                 public class Foo {
                     public void hello(){

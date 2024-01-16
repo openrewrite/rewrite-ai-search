@@ -16,6 +16,7 @@
 package io.moderne.ai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
@@ -23,7 +24,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import kong.unirest.*;
 import lombok.Value;
-import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 
@@ -36,8 +36,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Function;
-import org.openrewrite.HttpSenderExecutionContextView;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import static java.util.Objects.requireNonNull;
@@ -56,7 +54,7 @@ public class AgentRecommenderClient {
     private final Map<String, ArrayList<String>> recommendationsCache = Collections.synchronizedMap(new LinkedHashMap<String, ArrayList<String>>() {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, ArrayList<String>> eldest) {
-            return size() > 1000;
+            return size() > 1; // Was 1000. Setting it to 1, to get latency metrics without cache
         }
     });
     static {
@@ -129,18 +127,8 @@ public class AgentRecommenderClient {
         }
     }
 
-//    private Function<String, ArrayList<String>> timeEmbedding(List<Duration> timings) {
-//        return t -> {
-//            long start = System.nanoTime();
-//            ArrayList<String> recs= getRecommendations(t);
-//            if (timings.isEmpty()) {
-//                timings.add(Duration.ofNanos(System.nanoTime() - start));
-//            }
-//            return recs;
-//        };
-//    }
 
-    public ArrayList<String> getRecommendations(String text)  {
+    public ArrayList<String> getRecommendations(String text, int n_batch)  {
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(60), Duration.ofSeconds(220));
         HttpSender.Response raw = null;
@@ -148,7 +136,7 @@ public class AgentRecommenderClient {
         try {
             raw = http
                    .post("http://127.0.0.1:7864/run/predict")
-                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text)))
+                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text, String.valueOf(n_batch))))
                    .send();
         } catch (JsonProcessingException e) {
 
@@ -181,22 +169,19 @@ public class AgentRecommenderClient {
         List<String> data;
 
         public ArrayList<String> getRecommendations() {
-            String d = data.get(0);
+            String d = data.get(0).replace("'", "\"");
             if (d.isEmpty()){
               return new ArrayList<String>();
             }
-            String[] recsStr = d.substring(1, d.length() - 1).split(",");
-            ArrayList<String> recs = new ArrayList<>();
-            for (String s : recsStr) {
-                recs.add(s.trim());
+            ObjectMapper mapper = new ObjectMapper();
+            ArrayList<String> recs = null;
+            try {
+                recs = mapper.readValue(d, new TypeReference<ArrayList<String>>(){});
+            } catch (JsonProcessingException e) {
+                return new ArrayList<String>();
             }
             return recs;
         }
     }
 
-    @Value
-    public static class Relatedness {
-        ArrayList<String> isRelated;
-        List<Duration> embeddingTimings;
-    }
 }
