@@ -64,10 +64,16 @@ public class GetRecommendations extends Recipe {
                 if (randomNumber == 0 ) { // sample 1% of methods
                     long time = System.nanoTime();
                     // Get recommendations
-                    ArrayList<String> recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()), n_batch);
+                    ArrayList<String> recommendations;
+                    recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()),
+                            n_batch);
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5);
                     double elapsedTime = (System.nanoTime()-time)/1e9;
-                    recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(), n_batch, elapsedTime, tokenSize, recommendations));
+                    recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
+                            n_batch,
+                            elapsedTime,
+                            tokenSize,
+                            recommendations));
                 }
                 return md;
             }

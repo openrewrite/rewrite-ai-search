@@ -136,7 +136,8 @@ public class AgentRecommenderClient {
         try {
             raw = http
                    .post("http://127.0.0.1:7864/run/predict")
-                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text, String.valueOf(n_batch))))
+                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text,
+                           String.valueOf(n_batch))))
                    .send();
         } catch (JsonProcessingException e) {
 
