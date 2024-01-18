@@ -61,15 +61,12 @@ public class GetRecommendations extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                 int randomNumber = secureRandom.nextInt(100);
-                if (randomNumber < 90) { // sample 1% of methods
+                if (randomNumber == 0 ) { // sample 1% of methods
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()), n_batch);
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5);
                     double elapsedTime = (System.nanoTime()-time)/1e9;
-                    System.out.println(elapsedTime);
-                    System.out.println(tokenSize);
-                    System.out.println("~~~~~");
                     recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(), n_batch, elapsedTime, tokenSize, recommendations));
                 }
                 return md;
