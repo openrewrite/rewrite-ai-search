@@ -130,7 +130,7 @@ public class AgentRecommenderClient {
 
     public ArrayList<String> getRecommendations(String text, int n_batch)  {
 
-        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(60), Duration.ofSeconds(220));
+        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(120));
         HttpSender.Response raw = null;
 
         try {
