@@ -1,3 +1,2 @@
-import moderne_recommender
-
-moderne_recommender.start_gradio()
+from moderne_recommendation_agent import app
+app.start_gradio()
