@@ -14,11 +14,30 @@
 # limitations under the License.
 #
 from moderne_recommendation_agent import app
-import os
+import gradio as gr
+from functools import partial
+# app.start_gradio()
+inputs = [
+    gr.Textbox(
+        label="Code snippet",
+        placeholder="Input the code snippet for which you seek improvement recommendations."
+    ),
+    gr.Number(
+        label="n_batch"
+    )
+]
 
-def find(name, path):
-    for root, dirs, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
+outputs = [
+    gr.Textbox(label="Improvements recommended")
+]
 
-app.start_gradio(find("codellama.gguf", "/")
+run_partial = partial(app._run, "")
+
+interface = gr.Interface(
+    fn=run_partial,
+    inputs=inputs,
+    outputs=outputs,
+)
+
+
+interface.launch(share=False, server_port=7865)
