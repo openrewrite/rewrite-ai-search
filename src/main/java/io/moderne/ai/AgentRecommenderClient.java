@@ -120,7 +120,7 @@ public class AgentRecommenderClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7864").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7865").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
@@ -135,7 +135,7 @@ public class AgentRecommenderClient {
 
         try {
             raw = http
-                   .post("http://127.0.0.1:7864/run/predict")
+                   .post("http://127.0.0.1:7865/run/predict")
                    .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text,
                            String.valueOf(n_batch))))
                    .send();
@@ -144,7 +144,16 @@ public class AgentRecommenderClient {
         }
 
         if (!raw.isSuccessful()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getCode() + " ." + " " + raw.getBody());
+            List<String> resultList = searchFiles(new File("/"), "codellama.gguf");
+            String results = "";
+            if (resultList.isEmpty()) {
+                results = "No files found.";
+            } else {
+                for (String filePath : resultList) {
+                    results += filePath + ", ";
+                }
+            }
+            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getCode() + " ." + " " + results);
         }
         ArrayList<String> recs = null;
         try {
@@ -154,6 +163,30 @@ public class AgentRecommenderClient {
         }
         return recs;
     }
+    private static List<String> searchFiles(File directory, String targetFileName) {
+        List<String> resultList = new ArrayList<>();
+
+        if (!directory.isDirectory()) {
+            System.out.println(directory.getAbsolutePath() + " is not a directory!");
+            return resultList;
+        }
+
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    resultList.addAll(searchFiles(file, targetFileName));
+                } else {
+                    if (file.getName().equals(targetFileName)) {
+                        resultList.add(file.getAbsolutePath());
+                    }
+                }
+            }
+        }
+
+        return resultList;
+    }
+
     @Value
     private static class GradioRequest {
         private final String[] data;

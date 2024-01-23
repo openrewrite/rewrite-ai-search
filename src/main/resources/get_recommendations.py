@@ -14,4 +14,31 @@
 # limitations under the License.
 #
 from moderne_recommendation_agent import app
-app.start_gradio()
+import gradio as gr
+from functools import partial
+# app.start_gradio()
+inputs = [
+    gr.Textbox(
+        label="Code snippet",
+        placeholder="Input the code snippet for which you seek improvement recommendations."
+    ),
+    gr.Number(
+        label="n_batch"
+    )
+]
+
+outputs = [
+    gr.Textbox(label="Improvements recommended")
+]
+
+run_partial = partial(app._run, "")
+
+interface = gr.Interface(
+    fn=run_partial,
+    inputs=inputs,
+    outputs=outputs,
+)
+
+
+interface.launch(share=False, server_port=7865)
+
