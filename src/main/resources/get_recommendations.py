@@ -15,5 +15,10 @@
 #
 from moderne_recommendation_agent import app
 import os
-print(os.listdir())
-app.start_gradio("/codellama.gguf")
+
+def find(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+
+app.start_gradio(find("codellama.gguf", "/")
