@@ -61,7 +61,7 @@ public class GetRecommendations extends Recipe {
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                 int randomNumber = secureRandom.nextInt(100);
-                if (randomNumber != 0 ) { // sample 1% of methods
+                if (randomNumber == 0 ) { // sample 1% of methods
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;
