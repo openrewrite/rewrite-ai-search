@@ -14,11 +14,4 @@
 # limitations under the License.
 #
 from moderne_recommendation_agent import app
-import os
-
-def find(name, path):
-    for root, dirs, files in os.walk(path):
-        if name in files:
-            return os.path.join(root, name)
-
-app.start_gradio(find("codellama.gguf", "/")
+app.start_gradio()
