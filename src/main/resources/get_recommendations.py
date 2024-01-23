@@ -14,5 +14,4 @@
 # limitations under the License.
 #
 from moderne_recommendation_agent import app
-app.install()
 app.start_gradio()

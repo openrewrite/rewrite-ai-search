@@ -15,12 +15,20 @@
  */
 package io.moderne.ai;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ipc.http.HttpSender;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -38,6 +46,12 @@ import static java.util.Objects.requireNonNull;
 public class LanguageDetectorModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
+
+    private ObjectMapper mapper = JsonMapper.builder()
+            .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
+            .build()
+            .registerModule(new ParameterNamesModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Nullable
     private static LanguageDetectorModelClient INSTANCE;
@@ -139,15 +153,34 @@ public class LanguageDetectorModelClient {
         };
     }
 
-    public String getLanguageGradio(String s1) {
-        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7861/run/predict")
-                .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(new Object[]{s1}))
-                .asObject(GradioResponse.class);
-        if (!response.isSuccess()) {
-            throw new IllegalStateException("Unable to get language. HTTP " + response.getStatus());
+
+    public String getLanguageGradio(String text)  {
+
+        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
+        HttpSender.Response raw = null;
+
+        try {
+            raw = http
+                    .post("http://127.0.0.1:7861/run/predict")
+                    .withContent("application/json" ,
+                            mapper.writeValueAsBytes(new LanguageDetectorModelClient.GradioRequest(new String[]{text})))
+                    .send();
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException(e);
         }
-        return response.getBody().getLanguage();
+
+
+        if (!raw.isSuccessful()) {
+            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+        }
+        String language = null;
+        try {
+            language = mapper.readValue(raw.getBodyAsBytes(), LanguageDetectorModelClient.GradioResponse.class).getLanguage();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return language;
     }
 
     @Value
