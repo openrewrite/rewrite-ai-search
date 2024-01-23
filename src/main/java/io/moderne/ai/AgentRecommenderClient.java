@@ -140,13 +140,11 @@ public class AgentRecommenderClient {
                            String.valueOf(n_batch))))
                    .send();
         } catch (JsonProcessingException e) {
-
             throw new RuntimeException(e);
         }
 
-
         if (!raw.isSuccessful()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getCode() + " ." + " " + raw.getBody());
         }
         ArrayList<String> recs = null;
         try {
