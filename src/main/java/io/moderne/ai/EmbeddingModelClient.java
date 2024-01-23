@@ -15,12 +15,20 @@
  */
 package io.moderne.ai;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
 import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ipc.http.HttpSender;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -41,6 +49,12 @@ public class EmbeddingModelClient {
 
     @Nullable
     private static EmbeddingModelClient INSTANCE;
+
+    private ObjectMapper mapper = JsonMapper.builder()
+            .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
+            .build()
+            .registerModule(new ParameterNamesModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     private final Map<String, float[]> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<String, float[]>() {
         @Override
@@ -156,17 +170,36 @@ public class EmbeddingModelClient {
         return 1-Math.sqrt(sumOfSquaredDifferences);
     }
 
-    public float[] getEmbedding(String text) {
-        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
-                .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(text))
-                .asObject(GradioResponse.class);
-        if (!response.isSuccess()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
+
+    public float[] getEmbedding(String text)  {
+
+        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
+        HttpSender.Response raw = null;
+
+        try {
+            raw = http
+                    .post("http://127.0.0.1:7860/run/predict")
+                    .withContent("application/json" , mapper.writeValueAsBytes(new EmbeddingModelClient.GradioRequest(text)))
+                    .send();
+        } catch (JsonProcessingException e) {
+
+            throw new RuntimeException(e);
         }
-        return response.getBody().getEmbedding();
+
+
+        if (!raw.isSuccessful()) {
+            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+        }
+        float[] embeddings = null;
+        try {
+            embeddings = mapper.readValue(raw.getBodyAsBytes(), EmbeddingModelClient.GradioResponse.class).getEmbedding();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return embeddings;
     }
 
+    @Value
     private static class GradioRequest {
         private final String[] data;
 
