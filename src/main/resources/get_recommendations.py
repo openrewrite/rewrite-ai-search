@@ -16,4 +16,4 @@
 from moderne_recommendation_agent import app
 import os
 print(os.listdir())
-app.start_gradio()
+app.start_gradio("/codellama.gguf")
