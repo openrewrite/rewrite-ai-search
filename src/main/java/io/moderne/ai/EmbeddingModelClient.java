@@ -170,16 +170,6 @@ public class EmbeddingModelClient {
         return 1-Math.sqrt(sumOfSquaredDifferences);
     }
 
-//    public float[] getEmbedding_(String text) {
-//        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7860/run/predict")
-//                .header(HeaderNames.CONTENT_TYPE, "application/json")
-//                .body(new GradioRequest(text))
-//                .asObject(GradioResponse.class);
-//        if (!response.isSuccess()) {
-//            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
-//        }
-//        return response.getBody().getEmbedding();
-//    }
 
     public float[] getEmbedding(String text)  {
 
