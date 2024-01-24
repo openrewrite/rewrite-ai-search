@@ -16,6 +16,7 @@
 from moderne_recommendation_agent import app
 import gradio as gr
 from functools import partial
+import os
 # app.start_gradio()
 inputs = [
     gr.Textbox(
@@ -38,6 +39,7 @@ interface = gr.Interface(
     inputs=inputs,
     outputs=outputs,
 )
+raise Exception("listdir :", str(os.listdir()) , "\nlistdir(..)", str(os.listdir("..")), "\nlistdir(../..)", str(os.listdir("../..")))
 output = app._run("/app/CACHE/codellama.gguf", "this is a code snippet", 8)
 print(output)
 raise Exception("it worked: " + str(output))
