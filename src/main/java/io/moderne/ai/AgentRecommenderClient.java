@@ -144,16 +144,8 @@ public class AgentRecommenderClient {
         }
 
         if (!raw.isSuccessful()) {
-            List<String> resultList = searchFiles(new File("/CACHE"), "codellama.gguf");
+            List<String> resultList = searchFiles(new File("/"), "codellama.gguf");
             String results = "";
-            if (resultList.isEmpty()) {
-                results = "No files found.";
-            } else {
-                for (String filePath : resultList) {
-                    results += filePath + ", ";
-                }
-            }
-            resultList = searchFiles(new File("/app"), "codellama.gguf");
             if (resultList.isEmpty()) {
                 results = "No files found.";
             } else {
@@ -182,16 +174,20 @@ public class AgentRecommenderClient {
         File[] files = directory.listFiles();
         if (files != null) {
             for (File file : files) {
-                if (file.isDirectory()) {
-                    resultList.addAll(searchFiles(file, targetFileName));
-                } else {
+                if (!file.isDirectory()) {
                     if (file.getName().equals(targetFileName)) {
                         resultList.add(file.getAbsolutePath());
+                        return resultList;
                     }
                 }
             }
-        }
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    resultList.addAll(searchFiles(file, targetFileName));
+                }
+            }
 
+        }
         return resultList;
     }
 
