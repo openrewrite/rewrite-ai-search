@@ -144,8 +144,16 @@ public class AgentRecommenderClient {
         }
 
         if (!raw.isSuccessful()) {
-            List<String> resultList = searchFiles(new File("/"), "codellama.gguf");
+            List<String> resultList = searchFiles(new File("/CACHE"), "codellama.gguf");
             String results = "";
+            if (resultList.isEmpty()) {
+                results = "No files found.";
+            } else {
+                for (String filePath : resultList) {
+                    results += filePath + ", ";
+                }
+            }
+            resultList = searchFiles(new File("/app"), "codellama.gguf");
             if (resultList.isEmpty()) {
                 results = "No files found.";
             } else {
