@@ -38,7 +38,7 @@ interface = gr.Interface(
     inputs=inputs,
     outputs=outputs,
 )
-output = app._run("/CACHE/codellama.gguf", "this is a code snippet", 8)
+output = app._run("/codellama.gguf", "this is a code snippet", 8)
 print(output)
 raise Exception("it worked: " + str(output))
 
