@@ -120,7 +120,7 @@ public class AgentRecommenderClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7866").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7867").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
@@ -135,7 +135,7 @@ public class AgentRecommenderClient {
 
         try {
             raw = http
-                   .post("http://127.0.0.1:7866/run/predict")
+                   .post("http://127.0.0.1:7867/run/predict")
                    .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text,
                            String.valueOf(n_batch))))
                    .send();
