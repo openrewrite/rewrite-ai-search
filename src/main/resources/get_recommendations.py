@@ -32,15 +32,15 @@ outputs = [
     gr.Textbox(label="Improvements recommended")
 ]
 
-run_partial = partial(app._run, "/CACHE/codellama.gguf")
+run_partial = partial(app._run, "/MODELS/codellama.gguf")
 
 interface = gr.Interface(
     fn=run_partial,
     inputs=inputs,
     outputs=outputs,
 )
-raise Exception("listdir(..) :", str(os.listdir("..")) , "\nlistdir(../MODELS)", str(os.listdir("../MODELS")), "\nlistdir(/)", str(os.listdir("/")))
-output = app._run("../MODELS/codellama.gguf", "this is a code snippet", 8)
+# raise Exception("listdir(/app) :", str(os.listdir("..")) , "\nlistdir(../MODELS)", str(os.listdir("../MODELS")), "\nlistdir(/)", str(os.listdir("/")))
+output = app._run("/MODELS/codellama.gguf", "this is a code snippet", 8)
 print(output)
 raise Exception("it worked: " + str(output))
 
