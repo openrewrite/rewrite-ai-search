@@ -31,7 +31,7 @@ outputs = [
     gr.Textbox(label="Improvements recommended")
 ]
 
-run_partial = partial(app._run, "")
+run_partial = partial(app._run, "/CACHE/codellama.gguf")
 
 interface = gr.Interface(
     fn=run_partial,
@@ -40,4 +40,4 @@ interface = gr.Interface(
 )
 
 
-interface.launch(share=False, server_port=7865)
+interface.launch(share=False, server_port=7866)
