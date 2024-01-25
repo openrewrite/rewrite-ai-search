@@ -69,13 +69,23 @@ public class AgentRecommenderClient {
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
                 String cmd_llama = "pip install llama-cpp-python==0.1.84  --upgrade --force-reinstall --no-cache-dir";
+                String cmd_cpu = "lscpu";
+                Process proc_cpu = null;
+                StringWriter sw = new StringWriter();
+                PrintWriter procOut = new PrintWriter(sw);
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                     Process proc_llama = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_llama});
+                    proc_cpu = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_cpu});
+
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                INSTANCE.start();
+                new BufferedReader(new InputStreamReader(proc_cpu.getInputStream())).lines()
+                        .forEach(procOut::println);
+
+                throw new RuntimeException("lscpu: " + sw);
+//                INSTANCE.start();
             }
         }
         return INSTANCE;
