@@ -69,7 +69,7 @@ public class AgentRecommenderClient {
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
                 String cmd_pip = "/usr/bin/python3 -m pip install moderne-recommendation-agent --index-url https://moderne-recommender:${AZURE_DEVOPS_PAT}@pkgs.dev.azure.com/moderneinc/moderne/_packaging/moderne-recommender/pypi/simple/ --force-reinstall --no-cache-dir";
-                String cmd_run = "/usr/bin/python3 -c 'import moderne-recommendation-agent;  moderne-recommendation-agent._run('','code', 1)";
+                String cmd_run = "/usr/bin/python3 -c 'import moderne-recommendation-agent;  print(moderne-recommendation-agent._run('','code', 1)); print('got here')";
                 Process proc_run = null;
                 Process proc_pip = null;
                 StringWriter sw = new StringWriter();
