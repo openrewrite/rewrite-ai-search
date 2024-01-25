@@ -68,24 +68,27 @@ public class AgentRecommenderClient {
             INSTANCE = new AgentRecommenderClient();
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                String cmd_llama = "/usr/bin/python3 -m pip install llama-cpp-python==0.1.84  --upgrade --force-reinstall --no-cache-dir";
-                String cmd_cpu = "/usr/bin/python3 -c 'import llama_cpp;  print(llama_cpp.llama_print_system_info().decode(\"utf-8\"))'";
-                Process proc_cpu = null;
-                Process proc_llama = null;
+                String cmd_pip = "/usr/bin/python3 -m pip install moderne-recommendation-agent --index-url https://moderne-recommender:${AZURE_DEVOPS_PAT}@pkgs.dev.azure.com/moderneinc/moderne/_packaging/moderne-recommender/pypi/simple/";
+                String cmd_run = "/usr/bin/python3 -c 'import moderne-recommendation-agent;  moderne-recommendation-agent._run('','code', 1)";
+                Process proc_run = null;
+                Process proc_pip = null;
                 StringWriter sw = new StringWriter();
                 PrintWriter procOut = new PrintWriter(sw);
+                StringWriter sw2 = new StringWriter();
+                PrintWriter procOut2 = new PrintWriter(sw2);
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                    proc_llama = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_llama});
-                    proc_cpu = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_cpu});
+                    proc_pip = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_pip});
+                    proc_run = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_run});
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                new BufferedReader(new InputStreamReader(proc_cpu.getInputStream())).lines()
+                new BufferedReader(new InputStreamReader(proc_pip.getInputStream())).lines()
                         .forEach(procOut::println);
-
-                throw new RuntimeException("pip install llama output: " + sw);
+                new BufferedReader(new InputStreamReader(proc_run.getInputStream())).lines()
+                        .forEach(procOut2::println);
+                throw new RuntimeException("pip install llama output: " + sw + "\n\n~~~~~~~~"+ sw2);
 //                INSTANCE.start();
             }
         }
