@@ -71,20 +71,21 @@ public class AgentRecommenderClient {
                 String cmd_llama = "pip install llama-cpp-python==0.1.84  --upgrade --force-reinstall --no-cache-dir";
                 String cmd_cpu = "lscpu";
                 Process proc_cpu = null;
+                Process proc_llama = null;
                 StringWriter sw = new StringWriter();
                 PrintWriter procOut = new PrintWriter(sw);
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                    Process proc_llama = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_llama});
+                    proc_llama = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_llama});
                     proc_cpu = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_cpu});
 
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                new BufferedReader(new InputStreamReader(proc_cpu.getInputStream())).lines()
+                new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                         .forEach(procOut::println);
 
-                throw new RuntimeException("lscpu: " + sw);
+                throw new RuntimeException("pip install llama output: " + sw);
 //                INSTANCE.start();
             }
         }
