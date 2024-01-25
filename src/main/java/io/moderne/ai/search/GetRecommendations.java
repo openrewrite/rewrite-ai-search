@@ -60,7 +60,7 @@ public class GetRecommendations extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                int randomNumber = secureRandom.nextInt(100);
+                int randomNumber = secureRandom.nextInt(400);
                 if (randomNumber == 0 ) { // sample 1% of methods
                     long time = System.nanoTime();
                     // Get recommendations
