@@ -40,11 +40,8 @@ interface = gr.Interface(
     outputs=outputs,
 )
 # raise Exception("listdir(/app) :", str(os.listdir("..")) , "\nlistdir(../MODELS)", str(os.listdir("../MODELS")), "\nlistdir(/)", str(os.listdir("/")))
-output = app._run("/MODELS/codellama.gguf", "this is a code snippet", 8)
-print(output)
-raise Exception("it worked: " + str(output))
+# output = app._run("/MODELS/codellama.gguf", "this is a code snippet", 8)
+# print(output)
 
-
-
-# interface.launch(share=False, server_port=7866)
+interface.launch(share=False, server_port=7867)
 

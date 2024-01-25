@@ -72,8 +72,9 @@ public class AgentRecommenderClient {
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                     Process proc_pip = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_pip});
+                    proc_pip.waitFor();
 
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
 
@@ -96,6 +97,7 @@ public class AgentRecommenderClient {
                         .forEach(procOut::println);
                 new BufferedReader(new InputStreamReader(proc.getErrorStream())).lines()
                         .forEach(procOut::println);
+
             });
             if (!checkForUp(proc)) {
                 throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
