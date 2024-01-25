@@ -69,7 +69,7 @@ public class AgentRecommenderClient {
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
                 String cmd_llama = "/usr/bin/python3 -m pip install llama-cpp-python==0.1.84  --upgrade --force-reinstall --no-cache-dir";
-                String cmd_cpu = "/usr/bin/python3 'import llama_cpp\nllama_cpp.llama_print_system_info()';
+                String cmd_cpu = "/usr/bin/python3 'import llama_cpp\nllama_cpp.llama_print_system_info()'";
                 Process proc_cpu = null;
                 Process proc_llama = null;
                 StringWriter sw = new StringWriter();
