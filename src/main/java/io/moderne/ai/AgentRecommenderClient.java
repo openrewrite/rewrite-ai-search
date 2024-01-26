@@ -73,35 +73,35 @@ public class AgentRecommenderClient {
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                     Runtime runtime = Runtime.getRuntime();
-                    Process proc_curl = runtime.exec(new String[]{"/bin/sh", "-c", "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip --output /llama.cpp-b1961.zip"});
+                    Process proc_curl = runtime.exec(new String[]{"/bin/sh", "-c", "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip --output /app/llama.cpp-b1961.zip"});
                     new BufferedReader(new InputStreamReader(proc_curl.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_curl.getErrorStream())).lines()
                             .forEach(procOut::println);
                     proc_curl.waitFor();
 
-                    Process proc_jar = runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /llama.cpp-b1961.zip"});
+                    Process proc_jar = runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /app/llama.cpp-b1961.zip"});
                     new BufferedReader(new InputStreamReader(proc_jar.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_jar.getErrorStream())).lines()
                             .forEach(procOut::println);
                     proc_jar.waitFor();
 
-                    Process proc_mv = runtime.exec(new String[]{"/bin/sh", "-c", "mv /llama.cpp-b1961 /llama.cpp"});
+                    Process proc_mv = runtime.exec(new String[]{"/bin/sh", "-c", "mv /app/llama.cpp-b1961 /app/llama.cpp"});
                     new BufferedReader(new InputStreamReader(proc_mv.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_mv.getErrorStream())).lines()
                             .forEach(procOut::println);
                     proc_mv.waitFor();
 
-                    Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /llama.cpp && make"});
+                    Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /app/llama.cpp && make"});
                     new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
                             .forEach(procOut::println);
                     proc_make.waitFor();
 
-                    Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", "/llama.cpp/main -m '/MODELS/codellama.gguf' -p 'Hey, my name is' -n 15"});
+                    Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", "/app/llama.cpp/main -m '/MODELS/codellama.gguf' -p 'Hey, my name is' -n 15"});
                     new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
