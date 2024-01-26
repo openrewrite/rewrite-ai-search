@@ -68,17 +68,27 @@ public class AgentRecommenderClient {
             INSTANCE = new AgentRecommenderClient();
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                String cmd_pip = "/usr/bin/python3 -m pip install moderne-recommendation-agent --index-url https://moderne-recommender:${AZURE_DEVOPS_PAT}@pkgs.dev.azure.com/moderneinc/moderne/_packaging/moderne-recommender/pypi/simple/ --force-reinstall --no-cache-dir";
+                StringWriter sw = new StringWriter();
+                PrintWriter procOut = new PrintWriter(sw);
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                    Process proc_pip = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd_pip});
-                    proc_pip.waitFor();
-
+                    Runtime runtime = Runtime.getRuntime();
+                    runtime.exec(new String[]{"/bin/sh", "-c", "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip --output /llama.cpp-b1961.zip"}).waitFor();
+                    runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /llama.cpp-b1961.zip"}).waitFor();
+                    runtime.exec(new String[]{"/bin/sh", "-c", "mv /llama.cpp-b1961 /llama.cpp"}).waitFor();
+                    runtime.exec(new String[]{"/bin/sh", "-c", "cd /llama.cpp && make"}).waitFor();
+                    Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", "/llama.cpp/main -m '/MODELS/codellama.gguf' -p 'Hey, my name is' -n 15"});
+                    new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
+                            .forEach(procOut::println);
+                    new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
+                            .forEach(procOut::println);
+                    proc_llama.waitFor();
+                    throw new RuntimeException("output was: " + sw);
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
 
-                INSTANCE.start();
+//                INSTANCE.start();
             }
         }
         return INSTANCE;
