@@ -28,14 +28,15 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import static java.util.Objects.requireNonNull;
@@ -50,180 +51,100 @@ public class AgentRecommenderClient {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     @Nullable
     private static AgentRecommenderClient INSTANCE;
-
+    private String prompt = "\n" +
+            "Here is the task based on the code below: You are a software engineer responsible for keeping your source" +
+            " code up to date with the latest third party and open source library. Given a piece of Java code, provide" +
+            " a list of library upgrades you could perform. Only list 3 improvements for modernization.\n" +
+            "\n" +
+            "Here is the code snippet enclosed by backticks: \n ```";
     private final Map<String, ArrayList<String>> recommendationsCache = Collections.synchronizedMap(new LinkedHashMap<String, ArrayList<String>>() {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, ArrayList<String>> eldest) {
             return size() > 1; // Was 1000. Setting it to 1, to get latency metrics without cache
         }
     });
+
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
             throw new IllegalStateException("Unable to create models directory at " + MODELS_DIR);
         }
     }
 
-    public static synchronized AgentRecommenderClient getInstance()  {
+    public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new AgentRecommenderClient();
-            if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                StringWriter sw = new StringWriter();
-                PrintWriter procOut = new PrintWriter(sw);
-                try {
-                    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                    Runtime runtime = Runtime.getRuntime();
-                    Process proc_curl = runtime.exec(new String[]{"/bin/sh", "-c", "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip --output /app/llama.cpp-b1961.zip"});
-                    new BufferedReader(new InputStreamReader(proc_curl.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_curl.getErrorStream())).lines()
-                            .forEach(procOut::println);
-                    proc_curl.waitFor();
+            StringWriter sw = new StringWriter();
+            PrintWriter procOut = new PrintWriter(sw);
+            try {
+                Runtime runtime = Runtime.getRuntime();
+                Process proc_curl = runtime.exec(new String[]{"/bin/sh", "-c",
+                        "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip" +
+                                " --output /app/llama.cpp-b1961.zip"});
+                proc_curl.waitFor();
 
-                    Process proc_jar = runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /app/llama.cpp-b1961.zip"});
-                    new BufferedReader(new InputStreamReader(proc_jar.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_jar.getErrorStream())).lines()
-                            .forEach(procOut::println);
-                    proc_jar.waitFor();
+                Process proc_jar = runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /app/llama.cpp-b1961.zip"});
+                proc_jar.waitFor();
 
-                    Process proc_mv = runtime.exec(new String[]{"/bin/sh", "-c", "mv /app/llama.cpp-b1961 /app/llama.cpp"});
-                    new BufferedReader(new InputStreamReader(proc_mv.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_mv.getErrorStream())).lines()
-                            .forEach(procOut::println);
-                    proc_mv.waitFor();
+                Process proc_mv = runtime.exec(new String[]{"/bin/sh", "-c", "mv /app/llama.cpp-b1961 /app/llama.cpp"});
+                proc_mv.waitFor();
 
-                    Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /app/llama.cpp && make"});
-                    new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
-                            .forEach(procOut::println);
-                    proc_make.waitFor();
+                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /app/llama.cpp && make"});
+                proc_make.waitFor();
 
-                    Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", "/app/llama.cpp/main -m '/MODELS/codellama.gguf' -p 'Hey, my name is' -n 15"});
-                    new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
-                            .forEach(procOut::println);
-                    proc_llama.waitFor();
 
-                    throw new RuntimeException("output was: " + sw);
-                } catch (IOException | InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
 
-//                INSTANCE.start();
+
+            } catch (IOException | InterruptedException e) {
+                throw new RuntimeException(e);
             }
-        }
+            INSTANCE = new AgentRecommenderClient();
+            return INSTANCE;
+            }
         return INSTANCE;
     }
 
-    private void start() {
-        Path pyLauncher = MODELS_DIR.resolve("get_recommendations.py");
-        try {
-            Files.copy(requireNonNull(AgentRecommenderClient.class.getResourceAsStream("/get_recommendations.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
-            StringWriter sw = new StringWriter();
-            PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_recommendations.py", MODELS_DIR);
-            Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-            EXECUTOR_SERVICE.submit(() -> {
-                new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
-                        .forEach(procOut::println);
-                new BufferedReader(new InputStreamReader(proc.getErrorStream())).lines()
-                        .forEach(procOut::println);
+    public ArrayList<String> getRecommendations(String code, int batch_size) {
+        StringWriter sw = new StringWriter();
+        PrintWriter procOut = new PrintWriter(sw);
+        Runtime runtime = Runtime.getRuntime();
+        String tokenLength = String.valueOf((int)((code.length()/3.5)) + 400);
+        String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
+        try (FileWriter fileWriter = new FileWriter("/app/prompt.txt", false)) {
+            fileWriter.write("[INST]"+prompt);
+            fileWriter.write(code + "```\n[/INST]1.");
 
-            });
-            if (!checkForUp(proc)) {
-                throw new IllegalStateException("Unable to start model daemon. Output of process is:\n" + sw);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private boolean checkForUp(Process proc) {
-        for (int i = 0; i < 60; i++) {
-            try {
-                if (!proc.isAlive() && proc.exitValue() != 0) {
-                    return false;
-                }
-                if (checkForUpRequest() == 200) {
-                    return true;
-                }
-                Thread.sleep(1_000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return false;
-    }
-
-    private int checkForUpRequest() {
-        try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7867").asString();
-            return response.getStatus();
-        } catch (UnirestException e) {
-            return 523;
-        }
-    }
-
-
-    public ArrayList<String> getRecommendations(String text, int n_batch)  {
-
-        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(30), Duration.ofSeconds(240));
-        HttpSender.Response raw = null;
-
-        try {
-            raw = http
-                   .post("http://127.0.0.1:7867/run/predict")
-                   .withContent("application/json" , mapper.writeValueAsBytes(new GradioRequest(text,
-                           String.valueOf(n_batch))))
-                   .send();
-        } catch (JsonProcessingException e) {
+        } catch (IOException e){
             throw new RuntimeException(e);
         }
+        String flags = " -f /app/prompt.txt"
+            + " -n 200 -c " + tokenLength + " 2>/dev/null --no-display-prompt -b " + String.valueOf(batch_size);
 
-        if (!raw.isSuccessful()) {
-
-            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getCode());
-        }
-        ArrayList<String> recs = null;
+        String bogus = cmd + flags ;
         try {
-            recs = mapper.readValue(raw.getBodyAsBytes(), GradioResponse.class).getRecommendations();
-        } catch (IOException e) {
+            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
+            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
+                    .forEach(procOut::println);
+            proc_llama.waitFor();
+        } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        return recs;
+        return parseRecommendations("1."+sw);
+
     }
 
-    @Value
-    private static class GradioRequest {
-        private final String[] data;
-
-        GradioRequest(String... data) {
-            this.data = data;
+    public ArrayList<String> parseRecommendations(String recommendations) {
+        if (recommendations.equals("[]")) {
+            return new ArrayList<String>();
+        } else {
+            String patternString = "\\b\\d+[.:\\-]\\s+(.*?)\\s*(?=\\b\\d+[.:\\-]|\\Z)";
+            Pattern pattern = Pattern.compile(patternString, Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(recommendations);
+            ArrayList<String> matches = new ArrayList<>();
+            while (matcher.find()) {
+                matches.add(matcher.group(1));
+            }
+            return matches;
         }
     }
 
-    @Value
-    private static class GradioResponse {
-        List<String> data;
-
-        public ArrayList<String> getRecommendations() {
-            String d = data.get(0).replace("'", "\"");
-            if (d.isEmpty()){
-              return new ArrayList<String>();
-            }
-            ObjectMapper mapper = new ObjectMapper();
-            ArrayList<String> recs = null;
-            try {
-                recs = mapper.readValue(d, new TypeReference<ArrayList<String>>(){});
-            } catch (JsonProcessingException e) {
-                return new ArrayList<String>();
-            }
-            return recs;
-        }
-    }
 
 }
