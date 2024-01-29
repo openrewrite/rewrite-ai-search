@@ -14,57 +14,15 @@
  * limitations under the License.
  */
 package io.moderne.ai;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
-import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import kong.unirest.*;
-import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.ipc.http.HttpSender;
-
 import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
-import java.time.Duration;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.openrewrite.ipc.http.HttpUrlConnectionSender;
-
-import static java.util.Objects.requireNonNull;
-
 public class AgentRecommenderClient {
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
-    private ObjectMapper mapper = JsonMapper.builder()
-            .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
-            .build()
-            .registerModule(new ParameterNamesModule())
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     @Nullable
     private static AgentRecommenderClient INSTANCE;
-    private String prompt = "\n" +
-            "Here is the task based on the code below: You are a software engineer responsible for keeping your source" +
-            " code up to date with the latest third party and open source library. Given a piece of Java code, provide" +
-            " a list of library upgrades you could perform. Only list 3 improvements for modernization.\n" +
-            "\n" +
-            "Here is the code snippet enclosed by backticks: \n ```";
-    private final Map<String, ArrayList<String>> recommendationsCache = Collections.synchronizedMap(new LinkedHashMap<String, ArrayList<String>>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, ArrayList<String>> eldest) {
-            return size() > 1; // Was 1000. Setting it to 1, to get latency metrics without cache
-        }
-    });
-
-
-
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
             StringWriter sw = new StringWriter();
@@ -77,16 +35,15 @@ public class AgentRecommenderClient {
                         .forEach(procOut::println);
                 new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
                         .forEach(procOut::println);
-                if (proc_make.exitValue()!=0){
-                    throw new RuntimeException("Failed to make llama.cpp\nOutput: "+ sw);
+                if (proc_make.exitValue() != 0) {
+                    throw new RuntimeException("Failed to make llama.cpp\n" + sw);
                 }
-
             } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e + "\nOutput: "+ sw);
+                throw new RuntimeException(e + "\nOutput: " + sw);
             }
             INSTANCE = new AgentRecommenderClient();
             return INSTANCE;
-            }
+        }
         return INSTANCE;
     }
 
@@ -94,10 +51,9 @@ public class AgentRecommenderClient {
         StringWriter sw = new StringWriter();
         PrintWriter procOut = new PrintWriter(sw);
         StringWriter errorSw = new StringWriter();
-        PrintWriter errorOut = new PrintWriter(errorSw);
 
         Runtime runtime = Runtime.getRuntime();
-        String tokenLength = String.valueOf((int)((code.length()/3.5)) + 400);
+        String contextLength = String.valueOf((int) ((code.length() / 3.5)) + 400);
         String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
 
         try (
@@ -106,32 +62,39 @@ public class AgentRecommenderClient {
         ) {
             String line;
             StringBuilder promptContent = new StringBuilder();
-
-            // Read lines from prompt.txt and append to StringBuilder
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
 
-            fileWriter.write("[INST]" + promptContent.toString());
+            fileWriter.write("[INST]" + promptContent);
             fileWriter.write(code + "```\n[/INST]1.");
 
             String flags = " -f /app/input.txt"
-            + " -n 150 --temp 0.50 -c " + tokenLength + "  --no-display-prompt -b " + String.valueOf(batch_size);
+                    + " -n 150 --temp 0.50 -c " + contextLength +
+                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
+
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             proc_llama.waitFor();
             new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                     .forEach(procOut::println);
-            new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
-                    .forEach(errorOut::println);
-            if (parseRecommendations("1."+sw).isEmpty()){
-                throw new RuntimeException("Output: "+ sw + "\n Error output: " + errorSw);
+
+            ArrayList<String> recommendations = parseRecommendations("1." + sw);
+
+            if (recommendations.isEmpty()) {
+                BufferedReader bufferedReaderLog = new BufferedReader(new FileReader("/app/llama_log.txt"));
+                String logLine;
+                StringBuilder logContent = new StringBuilder();
+                while ((logLine = bufferedReaderLog.readLine()) != null) {
+                    logContent.append(logLine).append("\n");
+                }
+                bufferedReaderLog.close();
+                throw new RuntimeException("Logs: " + logContent);
             }
+            return recommendations;
 
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e+"\nOutput: "+ errorSw);
+            throw new RuntimeException(e + "\nOutput: " + errorSw);
         }
-        return parseRecommendations("1."+sw);
-
     }
 
     public ArrayList<String> parseRecommendations(String recommendations) {
