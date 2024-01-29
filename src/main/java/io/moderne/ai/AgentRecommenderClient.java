@@ -43,7 +43,6 @@ import static java.util.Objects.requireNonNull;
 
 public class AgentRecommenderClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
-    private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
     private ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
@@ -64,11 +63,7 @@ public class AgentRecommenderClient {
         }
     });
 
-    static {
-        if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
-            throw new IllegalStateException("Unable to create models directory at " + MODELS_DIR);
-        }
-    }
+
 
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
@@ -76,25 +71,15 @@ public class AgentRecommenderClient {
             PrintWriter procOut = new PrintWriter(sw);
             try {
                 Runtime runtime = Runtime.getRuntime();
-                Process proc_curl = runtime.exec(new String[]{"/bin/sh", "-c",
-                        "curl -L https://github.com/ggerganov/llama.cpp/archive/refs/tags/b1961.zip" +
-                                " --output /app/llama.cpp-b1961.zip"});
-                proc_curl.waitFor();
-
-                Process proc_jar = runtime.exec(new String[]{"/bin/sh", "-c", "jar xvf /app/llama.cpp-b1961.zip"});
-                proc_jar.waitFor();
-
-                Process proc_mv = runtime.exec(new String[]{"/bin/sh", "-c", "mv /app/llama.cpp-b1961 /app/llama.cpp"});
-                proc_mv.waitFor();
-
                 Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /app/llama.cpp && make"});
                 proc_make.waitFor();
-
-
-
+                new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
+                        .forEach(procOut::println);
+                new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
+                        .forEach(procOut::println);
 
             } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e + "\nOutput: "+ sw);
             }
             INSTANCE = new AgentRecommenderClient();
             return INSTANCE;
@@ -108,18 +93,25 @@ public class AgentRecommenderClient {
         Runtime runtime = Runtime.getRuntime();
         String tokenLength = String.valueOf((int)((code.length()/3.5)) + 400);
         String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
-        try (FileWriter fileWriter = new FileWriter("/app/prompt.txt", false)) {
-            fileWriter.write("[INST]"+prompt);
+
+        try (
+                BufferedReader bufferedReader = new BufferedReader(new FileReader("/app/prompt.txt"));
+                FileWriter fileWriter = new FileWriter("/app/input.txt", false)
+        ) {
+            String line;
+            StringBuilder promptContent = new StringBuilder();
+
+            // Read lines from prompt.txt and append to StringBuilder
+            while ((line = bufferedReader.readLine()) != null) {
+                promptContent.append(line).append("\n");
+            }
+
+            fileWriter.write("[INST]" + promptContent.toString());
             fileWriter.write(code + "```\n[/INST]1.");
 
-        } catch (IOException e){
-            throw new RuntimeException(e);
-        }
-        String flags = " -f /app/prompt.txt"
-            + " -n 200 -c " + tokenLength + " 2>/dev/null --no-display-prompt -b " + String.valueOf(batch_size);
+            String flags = " -f /app/input.txt"
+            + " -n 150 --temp 0.50 -c " + tokenLength + " 2>/dev/null --no-display-prompt -b " + String.valueOf(batch_size);
 
-        String bogus = cmd + flags ;
-        try {
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                     .forEach(procOut::println);

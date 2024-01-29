@@ -36,9 +36,9 @@ import java.util.ArrayList;
 @EqualsAndHashCode(callSuper = false)
 public class GetRecommendations extends Recipe {
 
-    @Option(displayName = "n_batch",
-            description = "n_batch size for testing purposes",
-            example = "126")
+    @Option(displayName = "batch size",
+            description = "batch size for testing purposes",
+            example = "512")
     int n_batch;
 
     transient Recommendations recommendations_table = new Recommendations(this);
@@ -60,14 +60,14 @@ public class GetRecommendations extends Recipe {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                int randomNumber = secureRandom.nextInt(400);
-                if (randomNumber == 0 ) { // sample 1% of methods
+                int randomNumber = secureRandom.nextInt(200);
+                if (randomNumber == 0 ) { // sample 0.5% of methods
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;
                     recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()),
                             n_batch);
-                    int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5);
+                    int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5 + recommendations.toString().length()/3.5 ) ;
                     double elapsedTime = (System.nanoTime()-time)/1e9;
                     recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
                             n_batch,
