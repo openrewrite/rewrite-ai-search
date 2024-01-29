@@ -90,6 +90,9 @@ public class AgentRecommenderClient {
     public ArrayList<String> getRecommendations(String code, int batch_size) {
         StringWriter sw = new StringWriter();
         PrintWriter procOut = new PrintWriter(sw);
+        StringWriter errorSw = new StringWriter();
+        PrintWriter errorOut = new PrintWriter(errorSw);
+
         Runtime runtime = Runtime.getRuntime();
         String tokenLength = String.valueOf((int)((code.length()/3.5)) + 400);
         String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
@@ -115,9 +118,16 @@ public class AgentRecommenderClient {
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                     .forEach(procOut::println);
+
+            new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
+                    .forEach(errorOut::println);
             proc_llama.waitFor();
+            if (parseRecommendations("1."+sw).isEmpty()){
+                throw new RuntimeException("Output: "+ sw + "\n Error output: " + errorSw);
+            }
+
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e+"\nOutput: "+ errorSw);
         }
         return parseRecommendations("1."+sw);
 
