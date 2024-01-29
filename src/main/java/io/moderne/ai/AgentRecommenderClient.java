@@ -113,15 +113,13 @@ public class AgentRecommenderClient {
             fileWriter.write(code + "```\n[/INST]1.");
 
             String flags = " -f /app/input.txt"
-            + " -n 150 --temp 0.50 -c " + tokenLength + " 2>/dev/null --no-display-prompt -b " + String.valueOf(batch_size);
-
+            + " -n 150 --temp 0.50 -c " + tokenLength + "  --no-display-prompt -b " + String.valueOf(batch_size);
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
+            proc_llama.waitFor();
             new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
                     .forEach(procOut::println);
-
             new BufferedReader(new InputStreamReader(proc_llama.getErrorStream())).lines()
                     .forEach(errorOut::println);
-            proc_llama.waitFor();
             if (parseRecommendations("1."+sw).isEmpty()){
                 throw new RuntimeException("Output: "+ sw + "\n Error output: " + errorSw);
             }
