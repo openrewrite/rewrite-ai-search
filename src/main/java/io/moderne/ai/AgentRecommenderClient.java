@@ -77,6 +77,9 @@ public class AgentRecommenderClient {
                         .forEach(procOut::println);
                 new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
                         .forEach(procOut::println);
+                if (proc_make.exitValue()!=0){
+                    throw new RuntimeException("Failed to make llama.cpp\nOutput: "+ sw);
+                }
 
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e + "\nOutput: "+ sw);
