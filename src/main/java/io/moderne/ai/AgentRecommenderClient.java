@@ -53,15 +53,11 @@ public class AgentRecommenderClient {
         PrintWriter procOut = new PrintWriter(sw);
         StringWriter errorSw = new StringWriter();
 
-        Runtime runtime = Runtime.getRuntime();
-        String contextLength = String.valueOf((int) ((code.length() / 3.5)) + 400);
-        String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
-
         try (
                 BufferedReader bufferedReader = new BufferedReader(new FileReader("/app/prompt.txt"));
                 FileWriter fileWriter = new FileWriter("/app/input.txt", false)
         ) {
-            String throwError = "";
+            // Write a temporary file for input which includes prompt and relevant code snippet
             String line;
             StringBuilder promptContent = new StringBuilder();
             while ((line = bufferedReader.readLine()) != null) {
@@ -70,10 +66,15 @@ public class AgentRecommenderClient {
             fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
             fileWriter.close();
 
-            String flags = " -f /app/input.txt"
-                    + " -n 150 -c " + contextLength + " -b "+ batch_size;
-//                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
+            // Arguments to send to model
+            String contextLength = String.valueOf((int) ((code.length() / 3.5)) + 400);
+            String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
+            String flags = " -f /app/input.txt --temp 0.50"
+                    + " -n 150 -c " + contextLength +
+                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
 
+            // Call llama.cpp
+            Runtime runtime = Runtime.getRuntime();
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             proc_llama.waitFor();
             new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
@@ -81,8 +82,7 @@ public class AgentRecommenderClient {
 
             ArrayList<String> recommendations = parseRecommendations("1." + sw);
 
-//            if (recommendations.isEmpty()) {
-            if (true) {
+            if (recommendations.isEmpty()) {
                 BufferedReader bufferedReaderLog = new BufferedReader(new FileReader("/app/llama_log.txt"));
                 String logLine;
                 StringBuilder logContent = new StringBuilder();
@@ -90,24 +90,10 @@ public class AgentRecommenderClient {
                     logContent.append(logLine).append("\n");
                 }
                 bufferedReaderLog.close();
-
-                BufferedReader catReader = new BufferedReader(new FileReader("/app/input.txt"));
-                String catLine;
-                StringBuilder catContent = new StringBuilder();
-                while ((catLine = catReader.readLine()) != null) {
-                    catContent.append(catLine).append("\n");
-                }
-                catReader.close();
-
-                throw new RuntimeException("input.txt :" + catContent +
-                        "\n\nLogs: " + logContent +
-                        "\n\n Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
-                        "Output was " + recommendations);
+                throw new RuntimeException("Logs: " + logContent);
             }
-            throw new RuntimeException("Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
-                    "Output was " + recommendations);
 
-//            return recommendations;
+            return recommendations;
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e + "\nOutput: " + errorSw);
