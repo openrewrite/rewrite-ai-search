@@ -80,7 +80,8 @@ public class AgentRecommenderClient {
 
             ArrayList<String> recommendations = parseRecommendations("1." + sw);
 
-            if (recommendations.isEmpty()) {
+//            if (recommendations.isEmpty()) {
+            if (true) {
                 BufferedReader bufferedReaderLog = new BufferedReader(new FileReader("/app/llama_log.txt"));
                 String logLine;
                 StringBuilder logContent = new StringBuilder();
@@ -88,7 +89,9 @@ public class AgentRecommenderClient {
                     logContent.append(logLine).append("\n");
                 }
                 bufferedReaderLog.close();
-                throw new RuntimeException("Logs: " + logContent);
+                throw new RuntimeException("Logs: " + logContent +
+                        "\n\n Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
+                        "Output was " + recommendations);
             }
             throw new RuntimeException("Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
                     "Output was " + recommendations);
