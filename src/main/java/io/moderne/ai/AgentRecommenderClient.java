@@ -31,6 +31,7 @@ public class AgentRecommenderClient {
                 Runtime runtime = Runtime.getRuntime();
                 Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
                 proc_make.waitFor();
+
                 new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
                         .forEach(procOut::println);
                 new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
@@ -70,7 +71,7 @@ public class AgentRecommenderClient {
             fileWriter.write(code + "```\n[/INST]1.");
 
             String flags = " -f /app/input.txt"
-                    + " -n 150 --temp 0.50 -c " + contextLength +
+                    + " -n 150 -c " + contextLength +
                     " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
 
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
