@@ -70,11 +70,8 @@ public class AgentRecommenderClient {
             fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
 
             String flags = " -f /app/input.txt"
-                    + " -n 150 -c " + contextLength +
-                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
-
-
-
+                    + " -n 150 -c " + contextLength + " -b "+ batch_size;
+//                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
 
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             proc_llama.waitFor();
