@@ -61,18 +61,20 @@ public class AgentRecommenderClient {
                 BufferedReader bufferedReader = new BufferedReader(new FileReader("/app/prompt.txt"));
                 FileWriter fileWriter = new FileWriter("/app/input.txt", false)
         ) {
+            String throwError = "";
             String line;
             StringBuilder promptContent = new StringBuilder();
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
-
-            fileWriter.write("[INST]" + promptContent);
-            fileWriter.write(code + "```\n[/INST]1.");
+            fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
 
             String flags = " -f /app/input.txt"
                     + " -n 150 -c " + contextLength +
                     " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
+
+
+
 
             Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
             proc_llama.waitFor();
@@ -91,7 +93,10 @@ public class AgentRecommenderClient {
                 bufferedReaderLog.close();
                 throw new RuntimeException("Logs: " + logContent);
             }
-            return recommendations;
+            throw new RuntimeException("Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
+                    "Output was " + recommendations);
+
+//            return recommendations;
 
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e + "\nOutput: " + errorSw);
