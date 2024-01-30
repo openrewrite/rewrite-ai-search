@@ -89,7 +89,17 @@ public class AgentRecommenderClient {
                     logContent.append(logLine).append("\n");
                 }
                 bufferedReaderLog.close();
-                throw new RuntimeException("Logs: " + logContent +
+
+                BufferedReader catReader = new BufferedReader(new FileReader("/app/input.txt"));
+                String catLine;
+                StringBuilder catContent = new StringBuilder();
+                while ((catLine = catReader.readLine()) != null) {
+                    catContent.append(catLine).append("\n");
+                }
+                catReader.close();
+
+                throw new RuntimeException("input.txt :" + catContent +
+                        "\n\nLogs: " + logContent +
                         "\n\n Input was: " + "[INST]" + promptContent + code + "```\n[/INST]1.\n\n\n" +
                         "Output was " + recommendations);
             }
