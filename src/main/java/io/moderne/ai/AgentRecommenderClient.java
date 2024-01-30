@@ -25,9 +25,16 @@ public class AgentRecommenderClient {
     private static AgentRecommenderClient INSTANCE;
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
+            //Check if llama.cpp is already built
+            File f = new File("/app/llama.cpp/main");
+            if(f.exists() && !f.isDirectory()) {
+                INSTANCE = new AgentRecommenderClient();
+                return INSTANCE;
+            }
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             try {
+
                 Runtime runtime = Runtime.getRuntime();
                 Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
                 proc_make.waitFor();
