@@ -29,7 +29,7 @@ public class AgentRecommenderClient {
             PrintWriter procOut = new PrintWriter(sw);
             try {
                 Runtime runtime = Runtime.getRuntime();
-                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "cd /app/llama.cpp && make"});
+                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
                 proc_make.waitFor();
                 new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
                         .forEach(procOut::println);
