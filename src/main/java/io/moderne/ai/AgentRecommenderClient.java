@@ -68,6 +68,7 @@ public class AgentRecommenderClient {
                 promptContent.append(line).append("\n");
             }
             fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
+            fileWriter.close();
 
             String flags = " -f /app/input.txt"
                     + " -n 150 -c " + contextLength + " -b "+ batch_size;
