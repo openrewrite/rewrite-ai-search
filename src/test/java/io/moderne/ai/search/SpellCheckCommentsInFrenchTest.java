@@ -24,11 +24,11 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class FindCommentsLanguageTest implements RewriteTest {
+public class SpellCheckCommentsInFrenchTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new FindCommentsLanguage());
+        spec.recipe(new SpellCheckCommentsInFrench());
     }
 
     @Test
@@ -41,13 +41,10 @@ public class FindCommentsLanguageTest implements RewriteTest {
               import kong.unirest.*;
               class Test {
                   void test() {
-                  /* this is comments
-                  still a comment
-                  */
                         Unirest.post("https://httpbin.org/post")
                                 .header("Content-Type", "application/json")
-                                .body("1")
-                                .asString(); // This is a comment
+                                .body("1") // Description: Fabrique pour construire la r�ponse du service SrvObtenirListeCompte?
+                                .asString(); // * - la valeur du champ "Transit" doit ?tre remise ? la valeur par d?faut soit le transit courant
                   }
               }
               """,
@@ -55,13 +52,10 @@ public class FindCommentsLanguageTest implements RewriteTest {
               import kong.unirest.*;
               class Test {
                   void test() {
-                  /*~~>*//* this is comments
-                  still a comment
-                  */
                         Unirest.post("https://httpbin.org/post")
                                 .header("Content-Type", "application/json")
-                                .body("1")
-                                .asString(); /*~~>*/// This is a comment
+                                .body("1") // Description: Fabrique pour construire la réponse du service SrvObtenirListeCompte?
+                                .asString(); // * - la valeur du champ "Transit" doit être remise à la valeur par défaut soit le transit courant
                   }
               }
               """

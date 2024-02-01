@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
@@ -43,25 +42,19 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-public class LanguageDetectorModelClient {
+public class SpellCheckerClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Nullable
-    private static LanguageDetectorModelClient INSTANCE;
+    private static SpellCheckerClient INSTANCE;
 
-    private final Map<Comment, String> languageCache = Collections.synchronizedMap(new LinkedHashMap<Comment, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Comment, String> eldest) {
-            return size() > 1000;
-        }
-    });
 
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
@@ -69,16 +62,10 @@ public class LanguageDetectorModelClient {
         }
     }
 
-    public static synchronized LanguageDetectorModelClient getInstance()  {
+    public static synchronized SpellCheckerClient getInstance()  {
         if (INSTANCE == null) {
-            INSTANCE = new LanguageDetectorModelClient();
+            INSTANCE = new SpellCheckerClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                try {
-                    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
                 INSTANCE.start();
             }
         }
@@ -86,13 +73,12 @@ public class LanguageDetectorModelClient {
     }
 
     private void start() {
-        Path pyLauncher = MODELS_DIR.resolve("get_language.py");
+        Path pyLauncher = MODELS_DIR.resolve("spellcheck_comment_french.py");
         try {
-            Files.copy(requireNonNull(LanguageDetectorModelClient.class.getResourceAsStream("/get_language.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(SpellCheckerClient.class.getResourceAsStream("/spellcheck_comment_french.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_language.py", MODELS_DIR);
-//            String cmd = String.format("python %s/get_language.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/spellcheck_comment_french.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -128,42 +114,25 @@ public class LanguageDetectorModelClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7861").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7863").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
         }
     }
 
-    public Language getLanguage(String t1) {
-        List<Duration> timings = new ArrayList<>(2);
-        Comment comment = new Comment(t1);
-        String b1 = languageCache.computeIfAbsent(comment, timeLanguage(timings));
-        return new Language(b1, timings);
-    }
-
-    private Function<Comment, String> timeLanguage(List<Duration> timings) {
-        return t -> {
-            long start = System.nanoTime();
-            String b = getLanguageGradio(t.t1);
-            if (timings.isEmpty()) {
-                timings.add(Duration.ofNanos(System.nanoTime() - start));
-            }
-            return b;
-        };
-    }
 
 
-    public String getLanguageGradio(String text)  {
+    public String getCommentGradio(String text)  {
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
         HttpSender.Response raw = null;
 
         try {
             raw = http
-                    .post("http://127.0.0.1:7861/run/predict")
+                    .post("http://127.0.0.1:7863/run/predict")
                     .withContent("application/json" ,
-                            mapper.writeValueAsBytes(new LanguageDetectorModelClient.GradioRequest(new String[]{text})))
+                            mapper.writeValueAsBytes(new SpellCheckerClient.GradioRequest(new String[]{text})))
                     .send();
         } catch (JsonProcessingException e) {
 
@@ -174,13 +143,13 @@ public class LanguageDetectorModelClient {
         if (!raw.isSuccessful()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
         }
-        String language = null;
+        String comment = null;
         try {
-            language = mapper.readValue(raw.getBodyAsBytes(), LanguageDetectorModelClient.GradioResponse.class).getLanguage();
+            comment = mapper.readValue(raw.getBodyAsBytes(), SpellCheckerClient.GradioResponse.class).getSpellCheck();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return language;
+        return comment;
     }
 
     @Value
@@ -191,15 +160,15 @@ public class LanguageDetectorModelClient {
     @Value
     private static class GradioResponse {
         String[] data;
-        public String getLanguage() {
+        public String getSpellCheck() {
             return data[0];
         }
     }
 
     @Value
-    public static class Language {
-        String language;
-        List<Duration> LanguageTimings;
+    public static class CommentFixed {
+        String comment;
+        List<Duration> commentTimings;
     }
 
     @Value

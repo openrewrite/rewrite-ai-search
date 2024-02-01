@@ -17,10 +17,13 @@ package io.moderne.ai.search;
 
 
 import io.moderne.ai.LanguageDetectorModelClient;
+import io.moderne.ai.SpellCheckerClient;
 import io.moderne.ai.table.LanguageDistribution;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -32,45 +35,35 @@ import static org.openrewrite.Tree.randomId;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class FindCommentsLanguage extends Recipe {
+public class SpellCheckCommentsInFrench extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Find comments' language distribution";
+        return "Fix mis-coded comments in French";
     }
 
     @Override
     public String getDescription() {
-        return "Finds all comments and uses AI to predict which language the comment is in.";
+        return "Use spellchecker to fix mis-coded French comments. Mis-coded comments will contain either '?' or '�'.";
     }
-
-    transient LanguageDistribution distribution = new LanguageDistribution(this);
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public Space visitSpace(Space space, Space.Location loc, ExecutionContext ctx) {
-                return space.withComments(ListUtils.map(space.getComments(), comment -> {
-                    if (comment instanceof TextComment) {
-                        JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
-                        distribution.insertRow(ctx, new LanguageDistribution.Row(
-                                javaSourceFile.getSourcePath().toString(),
-                                ((TextComment) comment).getText().toString(),
-                                LanguageDetectorModelClient.getInstance().getLanguage(((TextComment) comment).getText().toString()).getLanguage()
-                                )
-                        );
-
-
-                        return comment.withMarkers(comment.getMarkers().
-                                computeByType(new SearchResult(randomId(), null), (s1, s2) -> s1 == null ? s2 : s1));
-
+                return space.withComments(ListUtils.map(space.getComments(), c -> {
+                    if (!c.isMultiline()) {
+                        TextComment tc = (TextComment) c;
+                        String commentText = tc.getText();
+                        if (!commentText.isEmpty()) {
+                            String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
+                            return tc.withText(fixedComment);
+                        }
                     }
-                    return comment;
+                    return c;
                 }));
             }
-
         };
     }
 }
