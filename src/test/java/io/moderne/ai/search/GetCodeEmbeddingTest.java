@@ -28,7 +28,8 @@ class GetCodeEmbeddingTest implements RewriteTest {
     @Test
     void methods() {
         rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("methods")),
-          java("""
+          java(
+                """
                 public class Foo {
                     public void hello(){
                         System.out.println("hello");
@@ -41,7 +42,8 @@ class GetCodeEmbeddingTest implements RewriteTest {
     @Test
     void classes() {
         rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("classes")),
-          java("""
+          java(
+                """
                 public class Foo {
                     public void hello(){
                         System.out.println("hello");

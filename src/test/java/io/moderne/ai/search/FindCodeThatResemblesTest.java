@@ -17,6 +17,7 @@ package io.moderne.ai.search;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
@@ -38,6 +39,7 @@ public class FindCodeThatResemblesTest implements RewriteTest {
         ));
     }
 
+    @DocumentExample
     @Test
     void unirest() {
         rewriteRun(
