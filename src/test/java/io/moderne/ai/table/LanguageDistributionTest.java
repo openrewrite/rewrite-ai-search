@@ -17,8 +17,7 @@ package io.moderne.ai.table;
 
 import org.junit.jupiter.api.Test;
 
-public class LanguageDistributionTest {
-
+class LanguageDistributionTest {
     @Test
     void Row() {
         LanguageDistribution.Row row = new LanguageDistribution.Row("file", "comment", "language");
