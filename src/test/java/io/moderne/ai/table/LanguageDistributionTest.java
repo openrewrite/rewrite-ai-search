@@ -17,8 +17,6 @@ package io.moderne.ai.table;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-
 public class LanguageDistributionTest {
 
     @Test
