@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
-public class EmbeddingPerformanceTest {
+class EmbeddingPerformanceTest {
 
     @Test
     void histogram() {

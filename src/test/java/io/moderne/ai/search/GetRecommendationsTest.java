@@ -22,7 +22,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class GetRecommendationsTest implements RewriteTest {
+class GetRecommendationsTest implements RewriteTest {
 
     @Test
     void methods() {

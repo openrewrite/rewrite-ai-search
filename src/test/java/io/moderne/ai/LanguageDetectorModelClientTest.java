@@ -21,7 +21,7 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class LanguageDetectorModelClientTest {
+class LanguageDetectorModelClientTest {
     @Test
     void start() {
         LanguageDetectorModelClient client = LanguageDetectorModelClient.getInstance();
