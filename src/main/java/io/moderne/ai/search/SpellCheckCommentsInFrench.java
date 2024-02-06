@@ -56,8 +56,7 @@ public class SpellCheckCommentsInFrench extends Recipe {
                     if (!c.isMultiline()) {
                         TextComment tc = (TextComment) c;
                         String commentText = tc.getText();
-                        if (!commentText.isEmpty()
-                                && LanguageDetectorModelClient.getInstance()
+                        if (!commentText.isEmpty() && LanguageDetectorModelClient.getInstance()
                                 .getLanguage(commentText).getLanguage().equals("fr")
                         ) {
                             String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
