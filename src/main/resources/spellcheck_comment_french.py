@@ -52,4 +52,4 @@ def fix_comment_french(comment):
             fixed_words.append(word+suffix)
     return " ".join(fixed_words)
 
-gr.Interface(fn=fix_comment_french, inputs=["text"], outputs="text").launch(server_port=7863)
+gr.Interface(fn=fix_comment_french, inputs=["text"], outputs="text").launch(server_port=7866)

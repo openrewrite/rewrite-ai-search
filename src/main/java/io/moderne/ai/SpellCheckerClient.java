@@ -114,7 +114,7 @@ public class SpellCheckerClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7863").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7866").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
@@ -130,7 +130,7 @@ public class SpellCheckerClient {
 
         try {
             raw = http
-                    .post("http://127.0.0.1:7863/run/predict")
+                    .post("http://127.0.0.1:7866/run/predict")
                     .withContent("application/json" ,
                             mapper.writeValueAsBytes(new SpellCheckerClient.GradioRequest(new String[]{text})))
                     .send();

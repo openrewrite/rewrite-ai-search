@@ -33,7 +33,7 @@ public class SpellCheckCommentsInFrench extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Fix mis-coded comments in French";
+        return "Fix miscoded comments in French";
     }
 
     @Override
@@ -50,7 +50,10 @@ public class SpellCheckCommentsInFrench extends Recipe {
                     if (!c.isMultiline()) {
                         TextComment tc = (TextComment) c;
                         String commentText = tc.getText();
-                        if (!commentText.isEmpty()) {
+                        if (!commentText.isEmpty()
+                                && LanguageDetectorModelClient.getInstance()
+                                .getLanguage(commentText).getLanguage().equals("fr")
+                        ) {
                             String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
                             return tc.withText(fixedComment);
                         }
