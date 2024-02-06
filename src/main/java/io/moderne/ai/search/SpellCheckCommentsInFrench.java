@@ -15,7 +15,7 @@
  */
 package io.moderne.ai.search;
 
-
+import io.moderne.ai.LanguageDetectorModelClient;
 import io.moderne.ai.SpellCheckerClient;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
