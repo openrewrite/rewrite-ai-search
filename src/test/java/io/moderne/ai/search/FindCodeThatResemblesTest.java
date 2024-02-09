@@ -27,7 +27,7 @@ import java.util.List;
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class FindCodeThatResemblesTest implements RewriteTest {
+class FindCodeThatResemblesTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {

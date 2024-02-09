@@ -25,7 +25,7 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-public class FindCommentsLanguageTest implements RewriteTest {
+class FindCommentsLanguageTest implements RewriteTest {
 
     @Override
     public void defaults(RecipeSpec spec) {
