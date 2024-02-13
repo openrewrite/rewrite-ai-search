@@ -32,36 +32,138 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
         spec.recipe(new SpellCheckCommentsInFrench());
     }
 
-    @DocumentExample
     @Test
-    void unirest() {
+    void Test() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
           java(
             """
-              import kong.unirest.*;
               class Test {
                   void test() {
-                        Unirest.post("https://httpbin.org/post")
-                                .header("Content-Type", "application/json")
-                                .body("1") // Description: Fabrique pour construire la r�ponse du service SrvObtenirListeCompte?
-                                .asString(); // * - la valeur du champ "Transit" doit ?tre remise ? la valeur par d?faut soit le transit courant
+                      // Description: Fabrique pour construire la r�ponse du service Compte?
+                      // * - la valeur du champ "variable" doit ?tre remise ? la valeur par d?faut soit le transit courant
                   }
               }
               """,
             """
-              import kong.unirest.*;
               class Test {
                   void test() {
-                        Unirest.post("https://httpbin.org/post")
-                                .header("Content-Type", "application/json")
-                                .body("1") // Description: Fabrique pour construire la réponse du service SrvObtenirListeCompte?
-                                .asString(); // * - la valeur du champ "Transit" doit être remise à la valeur par défaut soit le transit courant
+                      // Description: Fabrique pour construire la réponse du service Compte?
+                      // * - la valeur du champ "variable" doit être remise à la valeur par défaut soit le transit courant
                   }
               }
               """
           )
+        );
+    }
+
+    @Test
+    void TestTrailingQuestion() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // c'est la valeur qui cotise?
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void TestAddAccent() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // c'est une valeur simplifi?
+                  }
+              }
+              """,
+            """
+             class Test {
+                 void test() {
+                     // c'est une valeur simplifié
+                 }
+             }
+             """
+          )
+        );
+    }
+
+    @Test
+    void TestUppercase() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // G?rer la variable
+                  }
+              }
+              """,
+            """
+             class Test {
+                 void test() {
+                     // Gérer la variable
+                 }
+             }
+             """
+          )
+        );
+    }
+        @Test
+        void TestQuestionMarkAlone() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion()),
+              //language=java
+              java(
+                """
+                  class Test {
+                      void test() {
+                          // C'est quoi ça ? C'est quoi?
+                          // C'est quoi ça ?
+                      }
+                  }
+                  """)
+            );
+    }
+
+    @Test
+    void TestJavaDoc() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  /**
+                  * Ceci est un test simplifi?
+                  */
+                  void test() {
+                  }
+              }
+              """,
+            """
+              class Test {
+                  /**
+                  * Ceci est un test simplifié
+                  */
+                  void test() {
+                  }
+              }
+              """
+            )
         );
     }
 
