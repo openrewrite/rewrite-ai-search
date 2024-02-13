@@ -148,7 +148,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
             """
               class Test {
                   /**
-                  * Ceci est un test simplifi?
+                  * Voici comment faire un test facile simplifi?
                   */
                   void test() {
                   }
@@ -157,7 +157,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
             """
               class Test {
                   /**
-                  * Ceci est un test simplifié
+                  * Voici comment faire un test facile simplifié
                   */
                   void test() {
                   }
