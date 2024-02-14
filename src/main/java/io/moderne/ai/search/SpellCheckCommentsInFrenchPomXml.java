@@ -31,7 +31,7 @@ public class SpellCheckCommentsInFrenchPomXml extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Fix mis-encoded comments in French";
+        return "Fix mis-encoded comments in French in pom.xml files";
     }
 
     @Override

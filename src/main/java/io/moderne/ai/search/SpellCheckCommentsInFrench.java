@@ -33,12 +33,12 @@ public class SpellCheckCommentsInFrench extends Recipe {
 
     @Override
     public String getDisplayName() {
-        return "Fix miscoded comments in French";
+        return "Fix mis-encoded comments in French";
     }
 
     @Override
     public String getDescription() {
-        return "Use spellchecker to fix miscoded French comments. Miscoded comments will contain either '?' or '�'.";
+        return "Use spellchecker to fix mis-encoded French comments. Mis-encoded comments will contain either '?' or '�'.";
     }
 
     @Override
