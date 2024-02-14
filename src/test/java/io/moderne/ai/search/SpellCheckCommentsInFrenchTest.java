@@ -17,11 +17,9 @@ package io.moderne.ai.search;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
@@ -32,36 +30,138 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
         spec.recipe(new SpellCheckCommentsInFrench());
     }
 
-    @DocumentExample
     @Test
-    void unirest() {
+    void singleLineComment() {
         rewriteRun(
-          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
           java(
             """
-              import kong.unirest.*;
               class Test {
                   void test() {
-                        Unirest.post("https://httpbin.org/post")
-                                .header("Content-Type", "application/json")
-                                .body("1") // Description: Fabrique pour construire la r�ponse du service SrvObtenirListeCompte?
-                                .asString(); // * - la valeur du champ "Transit" doit ?tre remise ? la valeur par d?faut soit le transit courant
+                      // Description: Fabrique pour construire la r�ponse du service Compte?
+                      // * - la valeur du champ "variable" doit ?tre remise ? la valeur par d?faut soit le transit courant
                   }
               }
               """,
             """
-              import kong.unirest.*;
               class Test {
                   void test() {
-                        Unirest.post("https://httpbin.org/post")
-                                .header("Content-Type", "application/json")
-                                .body("1") // Description: Fabrique pour construire la réponse du service SrvObtenirListeCompte?
-                                .asString(); // * - la valeur du champ "Transit" doit être remise à la valeur par défaut soit le transit courant
+                      // Description: Fabrique pour construire la réponse du service Compte?
+                      // * - la valeur du champ "variable" doit être remise à la valeur par défaut soit le transit courant
                   }
               }
               """
           )
+        );
+    }
+
+    @Test
+    void trailingQuestion() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // c'est la valeur qui cotise?
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void addAccent() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // c'est une valeur simplifi?
+                  }
+              }
+              """,
+            """
+             class Test {
+                 void test() {
+                     // c'est une valeur simplifié
+                 }
+             }
+             """
+          )
+        );
+    }
+
+    @Test
+    void uppercase() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // G?rer la variable
+                  }
+              }
+              """,
+            """
+             class Test {
+                 void test() {
+                     // Gérer la variable
+                 }
+             }
+             """
+          )
+        );
+    }
+        @Test
+        void questionMarkAlone() {
+            rewriteRun(
+              spec -> spec.parser(JavaParser.fromJavaVersion()),
+              //language=java
+              java(
+                """
+                  class Test {
+                      void test() {
+                          // C'est quoi ça ? C'est quoi?
+                          // C'est quoi ça ?
+                      }
+                  }
+                  """)
+            );
+    }
+
+    @Test
+    void javaDoc() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  /**
+                  * Voici comment faire un test facile simplifi?
+                  */
+                  void test() {
+                  }
+              }
+              """,
+            """
+              class Test {
+                  /**
+                  * Voici comment faire un test facile simplifié
+                  */
+                  void test() {
+                  }
+              }
+              """
+            )
         );
     }
 

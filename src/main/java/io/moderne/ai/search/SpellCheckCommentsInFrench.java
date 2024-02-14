@@ -24,8 +24,8 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.tree.Space;
-import org.openrewrite.java.tree.TextComment;
+import org.openrewrite.java.JavadocVisitor;
+import org.openrewrite.java.tree.*;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -38,23 +38,53 @@ public class SpellCheckCommentsInFrench extends Recipe {
 
     @Override
     public String getDescription() {
-        return "Use spellchecker to fix mis-coded French comments. Mis-coded comments will contain either '?' or '�'.";
+        return "Use spellchecker to fix miscoded French comments. Miscoded comments will contain either '?' or '�'.";
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
         return new JavaIsoVisitor<ExecutionContext>() {
+
+            @Override
+            protected JavadocVisitor<ExecutionContext> getJavadocVisitor() {
+                return new JavadocVisitor<ExecutionContext>(this) {
+                    @Override
+                    public Javadoc visitDocComment(Javadoc.DocComment javadoc, ExecutionContext ctx) {
+                        Javadoc.DocComment dc = (Javadoc.DocComment) super.visitDocComment(javadoc, ctx);
+
+                        dc = dc.withBody(ListUtils.map(dc.getBody(), docLine -> {
+                            if (docLine instanceof Javadoc.Text) {
+                                String commentText = ((Javadoc.Text) docLine).getText();
+                                if (!commentText.trim().isEmpty() && LanguageDetectorModelClient.getInstance()
+                                        .getLanguage(commentText).getLanguage().equals("fr")) {
+                                    String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
+                                    if (!fixedComment.equals(commentText)) {
+                                        docLine = ((Javadoc.Text) docLine).withText(fixedComment);
+                                    }
+                                }
+                            }
+                            return docLine;
+                        }));
+
+                        return dc;
+                    }
+                };
+            }
+
             @Override
             public Space visitSpace(Space space, Space.Location loc, ExecutionContext ctx) {
-                return space.withComments(ListUtils.map(space.getComments(), c -> {
-                    if (!c.isMultiline()) {
+                Space s = super.visitSpace(space, loc, ctx);
+                return s.withComments(ListUtils.map(s.getComments(), c -> {
+                    if (c instanceof TextComment) {
                         TextComment tc = (TextComment) c;
                         String commentText = tc.getText();
                         if (!commentText.isEmpty() && LanguageDetectorModelClient.getInstance()
                                 .getLanguage(commentText).getLanguage().equals("fr")
                         ) {
                             String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
-                            return tc.withText(fixedComment);
+                            if (!fixedComment.equals(commentText)) {
+                                return tc.withText(fixedComment);
+                            }
                         }
                     }
                     return c;
