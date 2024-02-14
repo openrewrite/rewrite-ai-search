@@ -20,7 +20,6 @@ import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
-
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
@@ -32,7 +31,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
     @Test
-    void Test() {
+    void singleLineComment() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
@@ -58,7 +57,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
     @Test
-    void TestTrailingQuestion() {
+    void trailingQuestion() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
@@ -75,7 +74,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
     @Test
-    void TestAddAccent() {
+    void addAccent() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
@@ -99,7 +98,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
     @Test
-    void TestUppercase() {
+    void uppercase() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java
@@ -122,7 +121,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
         );
     }
         @Test
-        void TestQuestionMarkAlone() {
+        void questionMarkAlone() {
             rewriteRun(
               spec -> spec.parser(JavaParser.fromJavaVersion()),
               //language=java
@@ -139,7 +138,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
     @Test
-    void TestJavaDoc() {
+    void javaDoc() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion()),
           //language=java

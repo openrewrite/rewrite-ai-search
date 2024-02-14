@@ -58,7 +58,9 @@ public class SpellCheckCommentsInFrench extends Recipe {
                                 if (!commentText.trim().isEmpty() && LanguageDetectorModelClient.getInstance()
                                         .getLanguage(commentText).getLanguage().equals("fr")) {
                                     String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
-                                    docLine = ((Javadoc.Text) docLine).withText(fixedComment);
+                                    if (!fixedComment.equals(commentText)) {
+                                        docLine = ((Javadoc.Text) docLine).withText(fixedComment);
+                                    }
                                 }
                             }
                             return docLine;
@@ -68,24 +70,22 @@ public class SpellCheckCommentsInFrench extends Recipe {
                     }
                 };
             }
+
             @Override
             public Space visitSpace(Space space, Space.Location loc, ExecutionContext ctx) {
-                return space.withComments(ListUtils.map(space.getComments(), c -> {
-                    if (c instanceof Javadoc) {
-                        if (javadocVisitor == null) {
-                            javadocVisitor = getJavadocVisitor();
+                Space s = super.visitSpace(space, loc, ctx);
+                return s.withComments(ListUtils.map(s.getComments(), c -> {
+                    if (c instanceof TextComment) {
+                        TextComment tc = (TextComment) c;
+                        String commentText = tc.getText();
+                        if (!commentText.isEmpty() && LanguageDetectorModelClient.getInstance()
+                                .getLanguage(commentText).getLanguage().equals("fr")
+                        ) {
+                            String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
+                            if (!fixedComment.equals(commentText)) {
+                                return tc.withText(fixedComment);
+                            }
                         }
-                        Comment comment = (Comment) javadocVisitor.visit((Javadoc) c, ctx);
-                        return comment;
-                    }
-
-                    TextComment tc = (TextComment) c;
-                    String commentText = tc.getText();
-                    if (!commentText.isEmpty() && LanguageDetectorModelClient.getInstance()
-                            .getLanguage(commentText).getLanguage().equals("fr")
-                    ) {
-                        String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
-                        return tc.withText(fixedComment);
                     }
                     return c;
                 }));
