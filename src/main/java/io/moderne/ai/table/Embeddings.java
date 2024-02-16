@@ -31,6 +31,10 @@ public class Embeddings extends DataTable<Embeddings.Row> {
 
     @Value
     public static class Row {
+        @Column(displayName = "Source",
+                description = "Source")
+        String source;
+
         @Column(displayName = "Name",
                 description = "Name of the class or method")
         String name;

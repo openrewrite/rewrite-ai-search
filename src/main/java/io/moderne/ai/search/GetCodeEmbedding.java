@@ -24,9 +24,8 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavaTypeSignatureBuilder;
-import org.openrewrite.java.internal.DefaultJavaTypeSignatureBuilder;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 
 
 @Value
@@ -60,10 +59,11 @@ public class GetCodeEmbedding extends Recipe {
                 @Override
                 public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                     J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                    J.ClassDeclaration cd = getCursor().firstEnclosing(J.ClassDeclaration.class);
                     // Get embedding
+                    JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                     float[] embedding = EmbeddingModelClient.getInstance().getEmbedding(md.printTrimmed(getCursor()));
-                    embeddings.insertRow(ctx, new Embeddings.Row(md.getSimpleName(), embedding));
+                    String s = javaSourceFile.getSourcePath().toString();
+                    embeddings.insertRow(ctx, new Embeddings.Row(javaSourceFile.getSourcePath().toString(), md.getSimpleName(), embedding));
                     return md;
                 }
             };
@@ -73,8 +73,9 @@ public class GetCodeEmbedding extends Recipe {
                public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration clazz, ExecutionContext ctx) {
                    J.ClassDeclaration cd = getCursor().firstEnclosing(J.ClassDeclaration.class);
                    // Get embedding
+                   JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                    float[] embedding = EmbeddingModelClient.getInstance().getEmbedding(cd.printTrimmed(getCursor()));
-                   embeddings.insertRow(ctx, new Embeddings.Row(cd.getSimpleName(), embedding));
+                   embeddings.insertRow(ctx, new Embeddings.Row(javaSourceFile.getSourcePath().toString(), cd.getSimpleName(), embedding));
                    return cd;
                }
            };
