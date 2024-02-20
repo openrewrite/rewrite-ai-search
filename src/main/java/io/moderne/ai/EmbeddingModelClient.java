@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import kong.unirest.HeaderNames;
 import kong.unirest.HttpResponse;
 import kong.unirest.Unirest;
 import kong.unirest.UnirestException;
@@ -85,13 +84,12 @@ public class EmbeddingModelClient {
     }
 
     private void start() {
-        Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
+        Path pyLauncher = MODELS_DIR.resolve("get_embedding.py");
         try {
-            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(EmbeddingModelClient.class.getResourceAsStream("/get_embedding.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
-//            String cmd = String.format("python %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_embedding.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -134,12 +132,6 @@ public class EmbeddingModelClient {
         }
     }
 
-    public boolean isRelated(String t1, String t2, double threshold) {
-        float[] e1 = embeddingCache.computeIfAbsent(t1, this::getEmbedding);
-        float[] e2 = embeddingCache.computeIfAbsent(t2.replace("\n", ""), this::getEmbedding);
-        return dist(e1, e2) <= threshold;
-    }
-
     public Relatedness getRelatedness(String t1, String t2, double threshold) {
         List<Duration> timings = new ArrayList<>(2);
         float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
@@ -170,7 +162,6 @@ public class EmbeddingModelClient {
         return 1-Math.sqrt(sumOfSquaredDifferences);
     }
 
-
     public float[] getEmbedding(String text)  {
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
@@ -182,14 +173,13 @@ public class EmbeddingModelClient {
                     .withContent("application/json" , mapper.writeValueAsBytes(new EmbeddingModelClient.GradioRequest(text)))
                     .send();
         } catch (JsonProcessingException e) {
-
             throw new RuntimeException(e);
         }
-
 
         if (!raw.isSuccessful()) {
             throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
         }
+
         float[] embeddings = null;
         try {
             embeddings = mapper.readValue(raw.getBodyAsBytes(), EmbeddingModelClient.GradioResponse.class).getEmbedding();

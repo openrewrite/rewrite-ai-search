@@ -19,10 +19,6 @@ os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
 os.environ["HF_HOME"]="/HF_CACHE/huggingface"
 os.environ["HUGGINGFACE_HUB_CACHE"]="/HF_CACHE/huggingface/hub"
 os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
-# os.environ["XDG_CACHE_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE"
-# os.environ["HF_HOME"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
-# os.environ["HUGGINGFACE_HUB_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface/hub"
-# os.environ["TRANSFORMERS_CACHE"]=os.path.expanduser("~") + "/.hfcache/HF_CACHE/huggingface"
 from transformers import logging, pipeline # 4.29.2
 import gradio as gr # 3.23.0
 logging.set_verbosity_error()

@@ -15,6 +15,7 @@
  */
 package io.moderne.ai.search;
 
+import io.moderne.ai.research.FindCodeThatResembles;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.DocumentExample;
