@@ -24,7 +24,7 @@ def split_word(word):
     else:
         return word, ''
 
-path = "/app/fr-1M.txt"
+path = "/Users/juju/Desktop/moderne/moderne-worker/worker-base/fr-1M.txt"#/app/fr-1M.txt"
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
 if not (sym_spell.load_dictionary(path, term_index=1, count_index=2, separator="\t")):
     raise Exception("Couldn't find the dictionnary.")

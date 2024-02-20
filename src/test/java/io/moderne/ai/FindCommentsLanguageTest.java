@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai.search;
+package io.moderne.ai;
 
+import io.moderne.ai.FindCommentsLanguage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.DocumentExample;

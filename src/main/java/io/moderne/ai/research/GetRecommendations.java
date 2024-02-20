@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai.search;
+package io.moderne.ai.research;
 
 import io.moderne.ai.AgentRecommenderClient;
-import io.moderne.ai.EmbeddingModelClient;
-import io.moderne.ai.table.Embeddings;
 import io.moderne.ai.table.Recommendations;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -27,9 +25,10 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 
 @Value
@@ -40,6 +39,11 @@ public class GetRecommendations extends Recipe {
             description = "batch size for testing purposes",
             example = "512")
     int n_batch;
+
+    @Option(displayName = "path",
+            description = "path to methods to sample",
+            example = "/app/methodsToSample.txt")
+    String path;
 
     transient Recommendations recommendations_table = new Recommendations(this);
 
@@ -53,15 +57,21 @@ public class GetRecommendations extends Recipe {
         return "This recipe calls an AI model to get recommendations for modernizing" +
                " the code base by looking at a sample of method declarations.";
     }
-    private static final SecureRandom secureRandom = new SecureRandom();
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
+        AgentRecommenderClient.populateMethodsToSample(path);
+
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                HashMap<String, String> methodsToSample = AgentRecommenderClient.getMethodsToSample();
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                int randomNumber = secureRandom.nextInt(200);
-                if (randomNumber == 0 ) { // sample 0.5% of methods
+                Boolean isMethodToSample = false;
+                JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                String source = javaSourceFile.getSourcePath().toString();
+                //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
+                isMethodToSample = (methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName()));
+                if ( isMethodToSample ) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;

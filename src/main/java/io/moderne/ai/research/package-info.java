@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 @NonNullApi
-package io.moderne.ai.search;
+package io.moderne.ai.research;
 
 import org.openrewrite.internal.lang.NonNullApi;

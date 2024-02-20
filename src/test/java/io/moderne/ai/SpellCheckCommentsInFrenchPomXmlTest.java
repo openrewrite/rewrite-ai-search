@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai.search;
+package io.moderne.ai;
 
+import io.moderne.ai.SpellCheckCommentsInFrenchPomXml;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.test.RecipeSpec;
@@ -52,6 +53,8 @@ class SpellCheckCommentsInFrenchPomXmlTest implements RewriteTest {
                  </dependency>
                </dependencies>
              </project>
+             """,
+             """
              <project>
                <modelVersion>4.0.0</modelVersion>
                <groupId>com.mycompany.app</groupId>
@@ -66,8 +69,6 @@ class SpellCheckCommentsInFrenchPomXmlTest implements RewriteTest {
                  </dependency>
                </dependencies>
              </project>
-                </dependencies>
-              </project>
              """
           )
         );

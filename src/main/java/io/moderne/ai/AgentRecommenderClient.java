@@ -17,12 +17,15 @@ package io.moderne.ai;
 import org.openrewrite.internal.lang.Nullable;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AgentRecommenderClient {
     @Nullable
     private static AgentRecommenderClient INSTANCE;
+    private static HashMap<String, String> methodsToSample;
+
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
@@ -53,6 +56,29 @@ public class AgentRecommenderClient {
             return INSTANCE;
         }
         return INSTANCE;
+    }
+
+    public static void populateMethodsToSample(String pathToCenters) {
+        HashMap<String, String> tempMethodsToSample = new HashMap<>();
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToCenters))){
+            String line;
+            String source;
+            String methodCall;
+            while ((line = bufferedReader.readLine()) != null) {
+                source = line.split(" ")[0];
+                methodCall = line.split(" ")[1];
+                tempMethodsToSample.put(source, methodCall);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Couldn't read which methods to sample. " + e);
+        }
+
+        methodsToSample = tempMethodsToSample;
+
+    }
+
+    public static HashMap<String, String> getMethodsToSample() {
+        return methodsToSample;
     }
 
     public ArrayList<String> getRecommendations(String code, int batch_size) {

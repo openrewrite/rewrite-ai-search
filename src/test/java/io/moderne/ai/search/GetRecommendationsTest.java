@@ -15,6 +15,7 @@
  */
 package io.moderne.ai.search;
 
+import io.moderne.ai.research.GetRecommendations;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.test.RewriteTest;
@@ -23,15 +24,15 @@ import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class GetRecommendationsTest implements RewriteTest {
-
+    String PATH = "";
     @Test
     void methods() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations(8)),
+        rewriteRun( spec -> spec.recipe(new GetRecommendations(8, PATH)),
           java(
                 """
                 public class Foo {
-                    public void hello(){
-                        System.out.println("hello");
+                    public void springBoot(){
+                        System.out.println("Starting up Spring Boot");
                     }
                      public void hi(){
                         System.out.println("hi");

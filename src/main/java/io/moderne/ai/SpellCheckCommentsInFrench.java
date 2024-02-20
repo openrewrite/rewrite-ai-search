@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai.search;
+package io.moderne.ai;
 
 import io.moderne.ai.LanguageDetectorModelClient;
 import io.moderne.ai.SpellCheckerClient;

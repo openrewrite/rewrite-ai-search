@@ -15,9 +15,9 @@
  */
 package io.moderne.ai.search;
 
+import io.moderne.ai.research.GetCodeEmbedding;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
-import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;

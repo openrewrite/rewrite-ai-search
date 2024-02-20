@@ -30,3 +30,8 @@ type: specs.openrewrite.org/v1beta/category
 name: Machine learning
 packageName: io.moderne.ai
 description: 'Uses of machine learning in recipes.'
+---
+type: specs.openrewrite.org/v1beta/category
+name: Ongoing research
+packageName: io.moderne.ai.research
+description: 'Ongoing research for the use of machine learning in recipes.'
