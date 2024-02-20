@@ -18,9 +18,11 @@ package io.moderne.ai;
 import io.moderne.ai.SpellCheckCommentsInFrench;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
+
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
@@ -31,6 +33,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
         spec.recipe(new SpellCheckCommentsInFrench());
     }
 
+    @DocumentExample
     @Test
     void singleLineComment() {
         rewriteRun(
