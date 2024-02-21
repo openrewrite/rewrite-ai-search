@@ -16,11 +16,11 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: io.moderne.ai.search.FixMisencodedCommentsInFrench
-displayName: Fix mis-encoded French comments
+displayName: Fix mis-encoded French comments, javadocs and pom.xml comments
 description: Fixes mis-encoded French comments in your code, javadocs and in your pom.xml files.
   Mis-encoded comments contain a ? or � character.
 tags:
   - ai
 recipeList:
-  - io.moderne.ai.search.SpellCheckCommentsInFrench
-  - io.moderne.ai.search.SpellCheckCommentsInFrenchPomXml
+  - io.moderne.ai.SpellCheckCommentsInFrench
+  - io.moderne.ai.SpellCheckCommentsInFrenchPomXml
