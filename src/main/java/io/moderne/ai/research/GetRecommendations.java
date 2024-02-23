@@ -45,7 +45,7 @@ public class GetRecommendations extends Recipe {
     int n_batch;
 
     @Option(displayName = "random sampling",
-            description = "Do random sampling or ",
+            description = "Do random sampling or use clusters based on embeddings to sample.",
             example = "/app/methodsToSample.txt")
     boolean random_sampling;
 
