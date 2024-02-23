@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.ai.search;
+package io.moderne.ai.research;
 
-import io.moderne.ai.research.GetCodeEmbedding;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.test.RewriteTest;
@@ -23,33 +22,29 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.java.Assertions.java;
 
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
-class GetCodeEmbeddingTest implements RewriteTest {
-
+class GetRecommendationsTest implements RewriteTest {
     @Test
     void methods() {
-        rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("methods")),
+        rewriteRun( spec -> spec.recipe(new GetRecommendations(8, true)),
           java(
                 """
                 public class Foo {
-                    public void hello(){
-                        System.out.println("hello");
+                    public void springBoot(){
+                        System.out.println("Starting up Spring Boot");
+                    }
+                     public void hi(){
+                        System.out.println("hi");
+                    }
+                     public void whatsUp(){
+                        System.out.println("What's up!");
+                    }
+                     public void stillHello(){
+                        System.out.println("Hello again");
                     }
                 }
                 """)
         );
     }
 
-    @Test
-    void classes() {
-        rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("classes")),
-          java(
-                """
-                public class Foo {
-                    public void hello(){
-                        System.out.println("hello");
-                    }
-                }
-                """)
-        );
-    }
+
 }

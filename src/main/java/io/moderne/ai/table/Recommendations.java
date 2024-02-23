@@ -51,7 +51,7 @@ public class Recommendations extends DataTable<Recommendations.Row> {
 
         @Column(displayName = "Recommendation",
                 description = "The recommendations based on the method")
-        ArrayList<String> Recommendations;
+        String Recommendations;
 
 
     }
