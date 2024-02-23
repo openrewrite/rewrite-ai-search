@@ -24,11 +24,15 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
+import org.openrewrite.java.RandomizeId;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Value
@@ -40,13 +44,15 @@ public class GetRecommendations extends Recipe {
             example = "512")
     int n_batch;
 
-    @Option(displayName = "path",
-            description = "path to methods to sample",
+    @Option(displayName = "random sampling",
+            description = "Do random sampling or ",
             example = "/app/methodsToSample.txt")
-    String path;
+    boolean random_sampling;
+
+    String path = "/app/methodsToSample.txt" ;
 
     transient Recommendations recommendations_table = new Recommendations(this);
-
+    private static final SecureRandom secureRandom = new SecureRandom();
     @Override
     public String getDisplayName() {
         return "Get recommendations";
@@ -59,31 +65,43 @@ public class GetRecommendations extends Recipe {
     }
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        AgentRecommenderClient.populateMethodsToSample(path);
+        if (!random_sampling){AgentRecommenderClient.populateMethodsToSample(path);}
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
-                HashMap<String, String> methodsToSample = AgentRecommenderClient.getMethodsToSample();
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
                 Boolean isMethodToSample = false;
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
-                isMethodToSample = (methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName()));
+                if (random_sampling){
+                    isMethodToSample = secureRandom.nextInt(200)==0;
+                }
+                else{
+                    //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
+                    HashMap<String, String> methodsToSample = AgentRecommenderClient.getMethodsToSample();
+                    isMethodToSample = (methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName()));
+                }
                 if ( isMethodToSample ) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;
                     recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()),
                             n_batch);
+
+                    List<String> recommendations_quoted = recommendations.stream()
+                            .map(element -> "\"" + element + "\"")
+                            .collect(Collectors.toList());
+                    String recommendations_as_String = "[" + String.join(", ", recommendations_quoted) + "]";
+
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5 + recommendations.toString().length()/3.5 ) ;
                     double elapsedTime = (System.nanoTime()-time)/1e9;
+
                     recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
                             n_batch,
                             elapsedTime,
                             tokenSize,
-                            recommendations));
+                            recommendations_as_String));
                 }
                 return md;
             }
