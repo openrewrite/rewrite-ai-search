@@ -24,7 +24,6 @@ import org.openrewrite.Option;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.RandomizeId;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
@@ -45,9 +44,8 @@ public class GetRecommendations extends Recipe {
     int n_batch;
 
     @Option(displayName = "random sampling",
-            description = "Do random sampling or use clusters based on embeddings to sample.",
-            example = "/app/methodsToSample.txt")
-    boolean random_sampling;
+            description = "Do random sampling or use clusters based on embeddings to sample.")
+    Boolean random_sampling;
 
     String path = "/app/methodsToSample.txt" ;
 
