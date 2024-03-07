@@ -122,14 +122,14 @@ public class FindCodeThatResembles extends Recipe {
                 double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
-//                for (Duration timing : related.getEmbeddingTimings()) {
-//                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
-//                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
-//                    AtomicLong max = getCursor().getNearestMessage("max");
-//                    if (requireNonNull(max).get() < timing.toNanos()) {
-//                        max.set(timing.toNanos());
-//                    }
-//                }
+                for (Duration timing : related.getEmbeddingTimings()) {
+                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
+                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
+                    AtomicLong max = getCursor().getNearestMessage("max");
+                    if (requireNonNull(max).get() < timing.toNanos()) {
+                        max.set(timing.toNanos());
+                    }
+                }
                 return related.isRelated() ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);
