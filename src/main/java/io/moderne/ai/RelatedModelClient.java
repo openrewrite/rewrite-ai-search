@@ -76,10 +76,8 @@ public class RelatedModelClient {
 
     private void start() {
         Path pyLauncher = MODELS_DIR.resolve("get_related.py");
-        Path torchPath = MODELS_DIR.resolve("torch_model");
         try {
             Files.copy(requireNonNull(RelatedModelClient.class.getResourceAsStream("/get_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
-            Files.copy(requireNonNull(RelatedModelClient.class.getResourceAsStream("/torch_model")), torchPath, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             String cmd = String.format("/usr/bin/python3 %s/get_related.py", MODELS_DIR);
