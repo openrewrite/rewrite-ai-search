@@ -16,6 +16,7 @@
 package io.moderne.ai.research;
 
 import io.moderne.ai.EmbeddingModelClient;
+import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -119,16 +120,16 @@ public class FindCodeThatResembles extends Recipe {
                 }
                 
                 double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
-                EmbeddingModelClient.Relatedness related = EmbeddingModelClient.getInstance()
+                RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
-                for (Duration timing : related.getEmbeddingTimings()) {
-                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
-                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
-                    AtomicLong max = getCursor().getNearestMessage("max");
-                    if (requireNonNull(max).get() < timing.toNanos()) {
-                        max.set(timing.toNanos());
-                    }
-                }
+//                for (Duration timing : related.getEmbeddingTimings()) {
+//                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
+//                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
+//                    AtomicLong max = getCursor().getNearestMessage("max");
+//                    if (requireNonNull(max).get() < timing.toNanos()) {
+//                        max.set(timing.toNanos());
+//                    }
+//                }
                 return related.isRelated() ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);

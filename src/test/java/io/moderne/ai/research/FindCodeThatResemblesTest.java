@@ -35,7 +35,7 @@ class FindCodeThatResemblesTest implements RewriteTest {
           "HTTP request with Content-Type application/json",
           List.of("kong.unirest.* *(..)", "okhttp*..* *(..)", "org.springframework.web.reactive.function.client.WebClient *(..)",
             "org.apache.hc..* *(..)", "org.apache.http.client..* *(..)"),
-          "0.25"
+          "0.68"
         ));
     }
 
