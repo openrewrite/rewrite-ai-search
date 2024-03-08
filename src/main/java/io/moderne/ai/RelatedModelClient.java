@@ -60,10 +60,8 @@ public class RelatedModelClient {
             INSTANCE = new RelatedModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                String cmdFlagEmbedding = String.format("pip3 install FlagEmbedding", MODELS_DIR);
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                    Process procFlagEmbedding = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmdFlagEmbedding});
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
