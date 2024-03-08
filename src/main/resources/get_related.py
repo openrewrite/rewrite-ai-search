@@ -24,7 +24,6 @@ import numpy as np
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
 import gradio as gr # 3.23.0
 import torch
-from sentence_transformers import SentenceTransformer
 logging.set_verbosity_error()
 
 class EncoderModel(ABC):
@@ -44,15 +43,6 @@ class Retriever(ABC):
     def _scaled_sigmoid(self, a: np.number | np.ndarray) -> np.number | np.ndarray:
         """a scaled sigmoid function to map values to [0, 1]"""
         return 1 / (1 + np.exp(-self._sigmoid_scale * (a - self._sigmoid_shift)))
-
-
-class SentenceTransformerModel(EncoderModel):
-    def __init__(self, checkpoint: str, device: str):
-        self.model = SentenceTransformer(checkpoint, device=device)
-
-    def encode(self, text: str) -> np.ndarray:
-        return self.model.encode(text, convert_to_numpy=True)
-
 
 class Reranker(Retriever):
     """Embeds the query and snippet jointly to create a similarity score."""
@@ -117,11 +107,13 @@ class HF(Retriever):
 
         return self._scaled_sigmoid(dist)
 
-model = Reranker("BAAI/bge-reranker-large")
+# model = Reranker("BAAI/bge-reranker-large") # threshold should model.predict(query, codesnippet)>threshold)
+# since higher score means more likely to be related
+
 model = HF("BAAI/bge-small-en-v1.5")
 
 def get_is_related(query, codesnippet, threshold):
-    return str(model.predict(query, codesnippet)>threshold)
+    return str(model.predict(query, codesnippet)<threshold)
 
 
 gr.Interface(fn=get_is_related, inputs=["text","text", "number"], outputs="text").launch(server_port=7869)
