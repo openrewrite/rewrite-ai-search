@@ -133,7 +133,7 @@ public class RelatedModelClient {
             long start = System.nanoTime();
             boolean b = getEmbedding(t.t1, t.t2, t.threshold);
             if (timings.isEmpty()) {
-                timings.add(Duration.ofNanos(System.nanoTime() - start));
+                timings.add(Duration.ofNanos(System.nanoTime() - start)); //What are nano seconds? https://en.wikipedia.org/wiki/Nanosecond
             }
             return b;
         };

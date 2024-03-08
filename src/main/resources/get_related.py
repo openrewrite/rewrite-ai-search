@@ -15,10 +15,15 @@
 #
 from FlagEmbedding import FlagReranker
 import os
+os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
+os.environ["HF_HOME"]="/HF_CACHE/huggingface"
+os.environ["HUGGINGFACE_HUB_CACHE"]="/HF_CACHE/huggingface/hub"
+os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
 from abc import ABC, abstractmethod
 import numpy as np
 from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
 import gradio as gr # 3.23.0
+import torch
 from sentence_transformers import SentenceTransformer
 logging.set_verbosity_error()
 
@@ -64,10 +69,59 @@ class Reranker(Retriever):
 
         return self._scaled_sigmoid(score)
 #initialize models
-reranker = Reranker("BAAI/bge-reranker-large")
+
+class HF(Retriever):
+    """Uses an embedding model to encode the query and snippet separately and compute a distance."""
+
+    _cache: dict[str, np.ndarray]
+
+    # map values between [10, 25] onto a large region of [0, 1]
+    _sigmoid_shift = 18.0
+    _sigmoid_scale = 0.1
+
+    def __init__(self, checkpoint: str):
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint)
+        model = AutoModel.from_pretrained(checkpoint)
+        model.eval()
+        self.model = model
+        self.tokenizer = tokenizer
+        self._cache = {}
+
+    def _encode(self, s: str) -> np.ndarray:
+        """caching wrapper for self.model.encode"""
+        if s in self._cache:
+            return self._cache[s]
+        encoded_input = self.tokenizer(s, padding=False, truncation=True, return_tensors='pt')
+        with torch.no_grad():
+            model_output = self.model(**encoded_input)
+            # Perform pooling. In this case, cls pooling.
+            sentence_embeddings = model_output[0][:, 0]
+        # normalize embeddings
+        v = sentence_embeddings / np.linalg.norm(sentence_embeddings, ord=2, axis=1, keepdims=True)
+        self._cache[s] = v
+
+        return v
+
+    def predict(self, query: str, snippet: str) -> float:
+        q_v = self._encode(query)
+        s_v = self._encode(snippet)
+
+        dist = np.linalg.norm(s_v - q_v)
+
+        return self._scaled_sigmoid(dist)
+    def predict(self, query: str, snippet: str) -> float:
+        q_v = self._encode(query)
+        s_v = self._encode(snippet)
+
+        dist = np.linalg.norm(s_v - q_v)
+
+        return self._scaled_sigmoid(dist)
+
+model = Reranker("BAAI/bge-reranker-large")
+model = HF("BAAI/bge-small-en-v1.5")
 
 def get_is_related(query, codesnippet, threshold):
-    return str(reranker.predict(query, codesnippet)>threshold)
+    return str(model.predict(query, codesnippet)>threshold)
 
 
 gr.Interface(fn=get_is_related, inputs=["text","text", "number"], outputs="text").launch(server_port=7869)
