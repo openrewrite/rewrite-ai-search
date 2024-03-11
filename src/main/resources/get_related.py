@@ -110,10 +110,15 @@ class HF(Retriever):
 # model = Reranker("BAAI/bge-reranker-large") # threshold should model.predict(query, codesnippet)>threshold)
 # since higher score means more likely to be related
 
-model = HF("BAAI/bge-small-en-v1.5")
+model = HF("SmartComponents/bge-micro-v2")
+smaller_means_closer = True
 
 def get_is_related(query, codesnippet, threshold):
-    return str(model.predict(query, codesnippet)<threshold)
+
+    if smaller_means_closer:
+        return str(model.predict(query, codesnippet)<threshold)
+    else:
+        return str(model.predict(query, codesnippet)>threshold)
 
 
 gr.Interface(fn=get_is_related, inputs=["text","text", "number"], outputs="text").launch(server_port=7869)
