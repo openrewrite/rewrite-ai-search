@@ -78,7 +78,7 @@ public class GetRecommendations extends Recipe {
                 else{
                     //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
                     HashMap<String, String> methodsToSample = AgentRecommenderClient.getMethodsToSample();
-                    isMethodToSample = (methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName()));
+                    isMethodToSample = methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName());
                 }
                 if ( isMethodToSample ) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
@@ -87,10 +87,10 @@ public class GetRecommendations extends Recipe {
                     recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()),
                             n_batch);
 
-                    List<String> recommendations_quoted = recommendations.stream()
+                    List<String> recommendationsQuoted = recommendations.stream()
                             .map(element -> "\"" + element + "\"")
                             .collect(Collectors.toList());
-                    String recommendations_as_String = "[" + String.join(", ", recommendations_quoted) + "]";
+                    String recommendationsAsString = "[" + String.join(", ", recommendationsQuoted) + "]";
 
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5 + recommendations.toString().length()/3.5 ) ;
                     double elapsedTime = (System.nanoTime()-time)/1e9;
@@ -99,7 +99,7 @@ public class GetRecommendations extends Recipe {
                             n_batch,
                             elapsedTime,
                             tokenSize,
-                            recommendations_as_String));
+                            recommendationsAsString));
                 }
                 return md;
             }

@@ -54,7 +54,7 @@ public class GetCodeEmbedding extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-       if (codeSnippetType.equals("methods")){
+       if ("methods".equals(codeSnippetType)){
             return new JavaIsoVisitor<ExecutionContext>() {
                 @Override
                 public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {

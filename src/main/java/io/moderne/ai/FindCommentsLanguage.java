@@ -57,8 +57,8 @@ public class FindCommentsLanguage extends Recipe {
                         JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                         distribution.insertRow(ctx, new LanguageDistribution.Row(
                                 javaSourceFile.getSourcePath().toString(),
-                                ((TextComment) comment).getText().toString(),
-                                LanguageDetectorModelClient.getInstance().getLanguage(((TextComment) comment).getText().toString()).getLanguage()
+                                ((TextComment) comment).getText(),
+                                LanguageDetectorModelClient.getInstance().getLanguage(((TextComment) comment).getText()).getLanguage()
                                 )
                         );
 
