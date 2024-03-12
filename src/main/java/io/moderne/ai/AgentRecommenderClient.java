@@ -135,7 +135,7 @@ public class AgentRecommenderClient {
 
     public ArrayList<String> parseRecommendations(String recommendations) {
         if (recommendations.equals("[]")) {
-            return new ArrayList<String>();
+            return new ArrayList<>();
         } else {
             String patternString = "\\b\\d+[.:\\-]\\s+(.*?)\\s*(?=\\b\\d+[.:\\-]|\\Z)";
             Pattern pattern = Pattern.compile(patternString, Pattern.DOTALL);
