@@ -148,5 +148,51 @@ public class AgentRecommenderClient {
         }
     }
 
+    public boolean isRelated(String query, String code) {
+        //Make call to model
+        StringWriter sw = new StringWriter();
+        PrintWriter procOut = new PrintWriter(sw);
+        StringWriter errorSw = new StringWriter();
+
+        try (
+                FileWriter fileWriter = new FileWriter("/app/inputRelated.txt", false)
+        ) {
+            // Write a temporary file for input which includes prompt and relevant code snippet
+            String line;
+            String promptContent = "Does this query match the code snippet?\n";
+            promptContent += "Query: " + query + "\n";
+            promptContent += "Code: " + code + "\n";
+            promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
+            fileWriter.write("[INST]" + promptContent + "[/INST]ANS:" );
+            fileWriter.close();
+
+            // Arguments to send to model
+            String contextLength = String.valueOf((int) ((code.length() + query.length()) / 3.5) + 100); //buffer of 100
+            String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
+            String flags = " -f /app/inputRelated.txt --temp 0.01"
+                    + " -n 2 -c " + contextLength +
+                    " 2>/app/llama_log.txt --no-display-prompt";
+
+            // Call llama.cpp
+            Runtime runtime = Runtime.getRuntime();
+            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
+            proc_llama.waitFor();
+            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
+                    .forEach(procOut::println);
+
+            return parseRelated(sw);
+
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e + "\nOutput: " + errorSw);
+        }
+
+    }
+
+    private boolean parseRelated(StringWriter sw) {
+        // check if Yes or yes in output, return true if it does
+        return (sw.toString().contains("Yes") || sw.toString().contains("yes"));
+
+    }
+
 
 }

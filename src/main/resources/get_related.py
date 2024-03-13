@@ -65,9 +65,7 @@ class HF(Retriever):
 
     _cache: dict[str, np.ndarray]
 
-    # map values between [10, 25] onto a large region of [0, 1]
-    _sigmoid_shift = 18.0
-    _sigmoid_scale = 0.1
+
 
     def __init__(self, checkpoint: str):
         tokenizer = AutoTokenizer.from_pretrained(checkpoint)
@@ -81,7 +79,8 @@ class HF(Retriever):
         """caching wrapper for self.model.encode"""
         if s in self._cache:
             return self._cache[s]
-        encoded_input = self.tokenizer(s, padding=False, truncation=True, return_tensors='pt')
+        encoded_input = self.tokenizer(s, padding=False, truncation=True, max_length=512, return_tensors='pt')
+
         with torch.no_grad():
             model_output = self.model(**encoded_input)
             # Perform pooling. In this case, cls pooling.
@@ -92,25 +91,19 @@ class HF(Retriever):
 
         return v
 
+
     def predict(self, query: str, snippet: str) -> float:
         q_v = self._encode(query)
         s_v = self._encode(snippet)
 
         dist = np.linalg.norm(s_v - q_v)
 
-        return self._scaled_sigmoid(dist)
-    def predict(self, query: str, snippet: str) -> float:
-        q_v = self._encode(query)
-        s_v = self._encode(snippet)
-
-        dist = np.linalg.norm(s_v - q_v)
-
-        return self._scaled_sigmoid(dist)
+        return dist
 
 # model = Reranker("BAAI/bge-reranker-large") # threshold should model.predict(query, codesnippet)>threshold)
 # since higher score means more likely to be related
 
-model = HF("SmartComponents/bge-micro-v2")
+model = HF("TaylorAI/bge-micro-v2")
 smaller_means_closer = True
 
 def get_is_related(query, codesnippet, threshold):

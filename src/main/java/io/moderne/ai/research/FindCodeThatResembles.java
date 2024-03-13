@@ -15,7 +15,7 @@
  */
 package io.moderne.ai.research;
 
-import io.moderne.ai.EmbeddingModelClient;
+import io.moderne.ai.AgentRecommenderClient;
 import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
@@ -130,7 +130,7 @@ public class FindCodeThatResembles extends Recipe {
                         max.set(timing.toNanos());
                     }
                 }
-                return related.isRelated() ?
+                return related.isRelated() && AgentRecommenderClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor())) ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);
             }
