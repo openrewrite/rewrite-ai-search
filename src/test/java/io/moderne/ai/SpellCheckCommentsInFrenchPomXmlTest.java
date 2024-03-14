@@ -18,6 +18,7 @@ package io.moderne.ai;
 import io.moderne.ai.SpellCheckCommentsInFrenchPomXml;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
+import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
@@ -31,6 +32,7 @@ class SpellCheckCommentsInFrenchPomXmlTest implements RewriteTest {
         spec.recipe(new SpellCheckCommentsInFrenchPomXml());
     }
 
+    @DocumentExample
     @Test
     void pom() {
         rewriteRun(
