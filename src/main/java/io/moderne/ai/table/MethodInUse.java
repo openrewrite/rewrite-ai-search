@@ -16,6 +16,7 @@
 package io.moderne.ai.table;
 
 import lombok.Value;
+import org.openrewrite.Column;
 import org.openrewrite.DataTable;
 import org.openrewrite.Recipe;
 
@@ -28,9 +29,20 @@ public class MethodInUse extends DataTable<MethodInUse.Row> {
 
     @Value
     public static class Row {
+        @Column(displayName = "Declaring type",
+                description = "The type that declares the method.")
         String declaringType;
+
+        @Column(displayName = "Method name",
+                description = "The name of the method.")
         String methodName;
+
+        @Column(displayName = "Return type",
+                description = "The return type of the method.")
         String returnType;
+
+        @Column(displayName = "Parameters",
+                description = "The parameters of the method.")
         String parameters;
     }
 }
