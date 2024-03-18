@@ -49,7 +49,8 @@ public class ListAllMethodsUsed extends Recipe {
                             Optional.ofNullable(type.getDeclaringType()).map(Object::toString).orElse(""),
                             type.getName(),
                             Optional.of(type.getReturnType()).map(Object::toString).orElse(""),
-                            type.getParameterNames().stream().collect(Collectors.joining(", "))
+                            type.getParameterNames().stream().collect(Collectors.joining(", ")),
+                            type.getParameterTypes().stream().map(Object::toString).collect(Collectors.joining(", "))
                     ));
                 });
                 return cu;

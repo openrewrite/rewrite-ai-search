@@ -44,5 +44,9 @@ public class MethodInUse extends DataTable<MethodInUse.Row> {
         @Column(displayName = "Parameters",
                 description = "The parameters of the method.")
         String parameters;
+
+        @Column(displayName = "Parameter types",
+                description = "The types of the parameters of the method.")
+        String parameterTypes;
     }
 }
