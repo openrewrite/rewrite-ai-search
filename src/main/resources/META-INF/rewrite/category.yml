@@ -35,3 +35,8 @@ type: specs.openrewrite.org/v1beta/category
 name: Ongoing research
 packageName: io.moderne.ai.research
 description: 'Ongoing research for the use of machine learning in recipes.'
+---
+type: specs.openrewrite.org/v1beta/category
+name: Transpose Capitalization
+packageName: io.moderne.transposeCapitalization
+description: 'Recipes that transpose capitalization (i.e. change the order of capitalization in natural language text).'
