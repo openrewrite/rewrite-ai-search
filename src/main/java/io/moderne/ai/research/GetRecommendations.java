@@ -73,7 +73,7 @@ public class GetRecommendations extends Recipe {
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
                 if (random_sampling){
-                    isMethodToSample = secureRandom.nextInt(200)==0;
+                    isMethodToSample = secureRandom.nextInt(200)>=0;
                 }
                 else{
                     //TODO: right now only method per file due to hashmap <String, String>... could be more than one!

@@ -14,10 +14,22 @@
  * limitations under the License.
  */
 package io.moderne.ai;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ipc.http.HttpSender;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
+
 import java.io.*;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,20 +38,32 @@ public class AgentRecommenderClient {
     private static AgentRecommenderClient INSTANCE;
     private static HashMap<String, String> methodsToSample;
 
+    private ObjectMapper mapper = JsonMapper.builder()
+            .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
+            .build()
+            .registerModule(new ParameterNamesModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    static String pathToModel = "/MODELS/codellama.gguf";
+    static String pathToLLama = "/app/llama.cpp";
+
+    static String pathToFiles = "/app/";
+
+    static String port = "7878";
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
-            File f = new File("/app/llama.cpp/main");
-            if(f.exists() && !f.isDirectory()) {
+            File f = new File(pathToLLama + "main");
+            if(f.exists() && !f.isDirectory() ) {
                 INSTANCE = new AgentRecommenderClient();
-                return INSTANCE;
+//                return INSTANCE;
             }
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             try {
 
                 Runtime runtime = Runtime.getRuntime();
-                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
+                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C "+ pathToLLama});
                 proc_make.waitFor();
 
                 new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
@@ -47,8 +71,20 @@ public class AgentRecommenderClient {
                 new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
                         .forEach(procOut::println);
                 if (proc_make.exitValue() != 0) {
-                    throw new RuntimeException("Failed to make llama.cpp\n" + sw);
+                    throw new RuntimeException("Failed to make llama.cpp at " + pathToLLama + "\n" + sw);
                 }
+
+                //Once llama is build, start server
+                Process proc_server = runtime.exec((new String[]
+                        {"/bin/sh", "-c", pathToLLama + "server -m " + pathToModel + " --port " + port + " &"}));
+                new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
+                        .forEach(procOut::println);
+                new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
+                        .forEach(procOut::println);
+                if (proc_server.exitValue() != 0) {
+                    throw new RuntimeException("Failed to start server\n" + sw);
+                }
+
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e + "\nOutput: " + sw);
             }
@@ -82,13 +118,15 @@ public class AgentRecommenderClient {
     }
 
     public ArrayList<String> getRecommendations(String code, int batch_size) {
+
+
+
         StringWriter sw = new StringWriter();
         PrintWriter procOut = new PrintWriter(sw);
         StringWriter errorSw = new StringWriter();
 
         try (
-                BufferedReader bufferedReader = new BufferedReader(new FileReader("/app/prompt.txt"));
-                FileWriter fileWriter = new FileWriter("/app/input.txt", false)
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToFiles + "prompt.txt"));
         ) {
             // Write a temporary file for input which includes prompt and relevant code snippet
             String line;
@@ -96,27 +134,42 @@ public class AgentRecommenderClient {
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
-            fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
-            fileWriter.close();
+            String text = "[INST]" + promptContent + code + "```\n[/INST]1." ;
+            HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
+            HttpSender.Response raw = null;
 
-            // Arguments to send to model
-            String contextLength = String.valueOf((int) ((code.length() / 3.5)) + 400);
-            String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
-            String flags = " -f /app/input.txt --temp 0.50"
-                    + " -n 150 -c " + contextLength +
-                    " 2>/app/llama_log.txt --no-display-prompt -b " + batch_size;
+            HashMap <String, Object> input = new HashMap<>();
+            input.put("stream", false);
+            input.put("prompt", text);
+            input.put("temperature", Double.valueOf(0.5));
+            input.put("n_predict", 150);
 
-            // Call llama.cpp
-            Runtime runtime = Runtime.getRuntime();
-            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
-            proc_llama.waitFor();
-            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
-                    .forEach(procOut::println);
+            try {
+                raw = http
+                        .post("http://127.0.0.1:" + port + "/completion")
+                        .withContent("application/json" ,
+                                mapper.writeValueAsBytes(input)).send();
 
-            ArrayList<String> recommendations = parseRecommendations("1." + sw);
+            } catch (JsonProcessingException e) {
+
+                throw new RuntimeException(e);
+            }
+
+
+            if (!raw.isSuccessful()) {
+                throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+            }
+            String textResponse = null;
+            try {
+                textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            ArrayList<String> recommendations = parseRecommendations("1." + textResponse);
 
             if (recommendations.isEmpty()) {
-                BufferedReader bufferedReaderLog = new BufferedReader(new FileReader("/app/llama_log.txt"));
+                BufferedReader bufferedReaderLog = new BufferedReader(new FileReader(pathToFiles + "llama_log.txt"));
                 String logLine;
                 StringBuilder logContent = new StringBuilder();
                 while ((logLine = bufferedReaderLog.readLine()) != null) {
@@ -128,7 +181,7 @@ public class AgentRecommenderClient {
 
             return recommendations;
 
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e + "\nOutput: " + errorSw);
         }
     }
@@ -194,5 +247,12 @@ public class AgentRecommenderClient {
 
     }
 
+    @Value
+    private static class LlamaResponse {
+        String content;
+        public String getResponse() {
+            return content;
+        }
+    }
 
 }
