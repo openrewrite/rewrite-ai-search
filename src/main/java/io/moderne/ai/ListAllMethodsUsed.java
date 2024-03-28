@@ -44,15 +44,14 @@ public class ListAllMethodsUsed extends Recipe {
             @SuppressWarnings("OptionalOfNullableMisuse")
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                cu.getTypesInUse().getUsedMethods().forEach(type -> {
+                cu.getTypesInUse().getUsedMethods().forEach(type ->
                     methodInUse.insertRow(ctx, new MethodInUse.Row(
                             Optional.ofNullable(type.getDeclaringType()).map(Object::toString).orElse(""),
                             type.getName(),
                             Optional.of(type.getReturnType()).map(Object::toString).orElse(""),
                             type.getParameterNames().stream().collect(Collectors.joining(", ")),
                             type.getParameterTypes().stream().map(Object::toString).collect(Collectors.joining(", "))
-                    ));
-                });
+                    )));
                 return cu;
             }
         };

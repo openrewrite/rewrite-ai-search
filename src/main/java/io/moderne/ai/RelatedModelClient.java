@@ -40,7 +40,7 @@ public class RelatedModelClient {
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
 
     @Nullable
-    private static RelatedModelClient INSTANCE;
+    private static RelatedModelClient instance;
 
     private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
         @Override
@@ -56,20 +56,20 @@ public class RelatedModelClient {
     }
 
     public static synchronized RelatedModelClient getInstance()  {
-        if (INSTANCE == null) {
-            INSTANCE = new RelatedModelClient();
-            if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+        if (instance == null) {
+            instance = new RelatedModelClient();
+            if (instance.checkForUpRequest() != 200) {
+                String cmd = String.format("/usr/bin/python3 'import gradio%ngradio.'");
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
 
-                INSTANCE.start();
+                instance.start();
             }
         }
-        return INSTANCE;
+        return instance;
     }
 
     private void start() {
@@ -160,7 +160,7 @@ public class RelatedModelClient {
         String[] data;
 
         public boolean isRelated() {
-            return data[0].equals("True");
+            return "True".equals(data[0]);
         }
     }
 

@@ -23,39 +23,39 @@ import java.util.regex.Pattern;
 
 public class AgentRecommenderClient {
     @Nullable
-    private static AgentRecommenderClient INSTANCE;
+    private static AgentRecommenderClient instance;
     private static HashMap<String, String> methodsToSample;
 
     public static synchronized AgentRecommenderClient getInstance() {
-        if (INSTANCE == null) {
+        if (instance == null) {
             //Check if llama.cpp is already built
             File f = new File("/app/llama.cpp/main");
             if(f.exists() && !f.isDirectory()) {
-                INSTANCE = new AgentRecommenderClient();
-                return INSTANCE;
+                instance = new AgentRecommenderClient();
+                return instance;
             }
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
             try {
 
                 Runtime runtime = Runtime.getRuntime();
-                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
-                proc_make.waitFor();
+                Process procMake = runtime.exec(new String[]{"/bin/sh", "-c", "make -C /app/llama.cpp"});
+                procMake.waitFor();
 
-                new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
+                new BufferedReader(new InputStreamReader(procMake.getInputStream())).lines()
                         .forEach(procOut::println);
-                new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
+                new BufferedReader(new InputStreamReader(procMake.getErrorStream())).lines()
                         .forEach(procOut::println);
-                if (proc_make.exitValue() != 0) {
+                if (procMake.exitValue() != 0) {
                     throw new RuntimeException("Failed to make llama.cpp\n" + sw);
                 }
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e + "\nOutput: " + sw);
             }
-            INSTANCE = new AgentRecommenderClient();
-            return INSTANCE;
+            instance = new AgentRecommenderClient();
+            return instance;
         }
-        return INSTANCE;
+        return instance;
     }
 
     public static void populateMethodsToSample(String pathToCenters) {
@@ -97,7 +97,6 @@ public class AgentRecommenderClient {
                 promptContent.append(line).append("\n");
             }
             fileWriter.write("[INST]" + promptContent + code + "```\n[/INST]1." );
-            fileWriter.close();
 
             // Arguments to send to model
             String contextLength = String.valueOf((int) ((code.length() / 3.5)) + 400);
@@ -108,9 +107,9 @@ public class AgentRecommenderClient {
 
             // Call llama.cpp
             Runtime runtime = Runtime.getRuntime();
-            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
-            proc_llama.waitFor();
-            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
+            Process procLlama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
+            procLlama.waitFor();
+            new BufferedReader(new InputStreamReader(procLlama.getInputStream())).lines()
                     .forEach(procOut::println);
 
             ArrayList<String> recommendations = parseRecommendations("1." + sw);
@@ -134,7 +133,7 @@ public class AgentRecommenderClient {
     }
 
     public ArrayList<String> parseRecommendations(String recommendations) {
-        if (recommendations.equals("[]")) {
+        if ("[]".equals(recommendations)) {
             return new ArrayList<>();
         } else {
             String patternString = "\\b\\d+[.:\\-]\\s+(.*?)\\s*(?=\\b\\d+[.:\\-]|\\Z)";
@@ -164,7 +163,6 @@ public class AgentRecommenderClient {
             promptContent += "Code: " + code + "\n";
             promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
             fileWriter.write("[INST]" + promptContent + "[/INST]ANS:" );
-            fileWriter.close();
 
             // Arguments to send to model
             String contextLength = String.valueOf((int) ((code.length() + query.length()) / 3.5) + 100); //buffer of 100
@@ -175,9 +173,9 @@ public class AgentRecommenderClient {
 
             // Call llama.cpp
             Runtime runtime = Runtime.getRuntime();
-            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
-            proc_llama.waitFor();
-            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
+            Process procLlama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
+            procLlama.waitFor();
+            new BufferedReader(new InputStreamReader(procLlama.getInputStream())).lines()
                     .forEach(procOut::println);
 
             return parseRelated(sw);
@@ -190,7 +188,7 @@ public class AgentRecommenderClient {
 
     private boolean parseRelated(StringWriter sw) {
         // check if Yes or yes in output, return true if it does
-        return (sw.toString().contains("Yes") || sw.toString().contains("yes"));
+        return sw.toString().contains("Yes") || sw.toString().contains("yes");
 
     }
 

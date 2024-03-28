@@ -47,14 +47,14 @@ public class LanguageDetectorModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Nullable
-    private static LanguageDetectorModelClient INSTANCE;
+    private static LanguageDetectorModelClient instance;
 
     private final Map<Comment, String> languageCache = Collections.synchronizedMap(new LinkedHashMap<Comment, String>() {
         @Override
@@ -70,19 +70,19 @@ public class LanguageDetectorModelClient {
     }
 
     public static synchronized LanguageDetectorModelClient getInstance()  {
-        if (INSTANCE == null) {
-            INSTANCE = new LanguageDetectorModelClient();
-            if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+        if (instance == null) {
+            instance = new LanguageDetectorModelClient();
+            if (instance.checkForUpRequest() != 200) {
+                String cmd = String.format("/usr/bin/python3 'import gradio%ngradio.'");
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                INSTANCE.start();
+                instance.start();
             }
         }
-        return INSTANCE;
+        return instance;
     }
 
     private void start() {

@@ -25,6 +25,6 @@ class LanguageDetectorModelClientTest {
     @Test
     void start() {
         LanguageDetectorModelClient client = LanguageDetectorModelClient.getInstance();
-        assertThat(client.getLanguageGradio("On fait un essai").equals("fr"));
+        assertThat("fr".equals(client.getLanguageGradio("On fait un essai")));
     }
 }

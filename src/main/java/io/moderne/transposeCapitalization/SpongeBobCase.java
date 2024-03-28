@@ -59,7 +59,7 @@ public class SpongeBobCase extends Recipe {
             // Function to convert text to SpongeBob case with slight randomness
                 private String toSpongeBobCase(String input) {
                 StringBuilder sb = new StringBuilder(input.length());
-                Random random = new Random(01042024);
+                Random random = new Random(279572);
                 boolean toUpperCase = random.nextBoolean(); // Initial choice, randomly upper or lower case
 
                 for (char c : input.toCharArray()) {
@@ -81,8 +81,8 @@ public class SpongeBobCase extends Recipe {
                     if (comment instanceof TextComment) {
                         TextComment tc = (TextComment) comment;
                         String commentText = tc.getText();
-                        String SpongeBobComment = toSpongeBobCase(commentText);
-                        return tc.withText(SpongeBobComment);
+                        String spongeBobComment = toSpongeBobCase(commentText);
+                        return tc.withText(spongeBobComment);
                     }
                     return comment;
                 }));

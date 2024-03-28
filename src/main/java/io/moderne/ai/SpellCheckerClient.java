@@ -53,7 +53,7 @@ public class SpellCheckerClient {
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
     @Nullable
-    private static SpellCheckerClient INSTANCE;
+    private static SpellCheckerClient instance;
 
 
     static {
@@ -63,13 +63,13 @@ public class SpellCheckerClient {
     }
 
     public static synchronized SpellCheckerClient getInstance()  {
-        if (INSTANCE == null) {
-            INSTANCE = new SpellCheckerClient();
-            if (INSTANCE.checkForUpRequest() != 200) {
-                INSTANCE.start();
+        if (instance == null) {
+            instance = new SpellCheckerClient();
+            if (instance.checkForUpRequest() != 200) {
+                instance.start();
             }
         }
-        return INSTANCE;
+        return instance;
     }
 
     private void start() {
