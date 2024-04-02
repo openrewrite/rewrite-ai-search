@@ -156,6 +156,7 @@ public class LanguageDetectorModelClient {
 
     public String getLanguageGradio(String text)  {
 
+
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
         HttpSender.Response raw = null;
 
