@@ -29,6 +29,7 @@ import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
 import java.io.*;
+import java.net.ConnectException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,6 +52,8 @@ public class AgentRecommenderClient {
     static String pathToLLama = "/app/llama.cpp";
 
     static String pathToFiles = "/app/";
+
+    static String logs = "";
 
     static String port = "7878";
     public static synchronized AgentRecommenderClient getInstance() {
@@ -95,6 +98,7 @@ public class AgentRecommenderClient {
                     if (proc_server.exitValue() != 0) {
                         throw new RuntimeException("Failed to start server\n" + sw);
                     }
+                    logs+="Starting Server: " + sw;
 
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
@@ -168,9 +172,8 @@ public class AgentRecommenderClient {
                         .withContent("application/json" ,
                                 mapper.writeValueAsBytes(input)).send();
 
-            } catch (JsonProcessingException e) {
-
-                throw new RuntimeException(e);
+            } catch (Exception e) {
+                throw new RuntimeException(e + "\nLogs: " + logs);
             }
 
 
@@ -181,7 +184,7 @@ public class AgentRecommenderClient {
             try {
                 textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e + "\nLogs: " + logs);
             }
 
             ArrayList<String> recommendations = parseRecommendations("1." + textResponse);
@@ -200,7 +203,7 @@ public class AgentRecommenderClient {
             return recommendations;
 
         } catch (IOException e) {
-            throw new RuntimeException(e + "\nOutput: " + errorSw);
+            throw new RuntimeException(e + "\nOutput: " + errorSw + "\nLogs: " + logs);
         }
     }
 
