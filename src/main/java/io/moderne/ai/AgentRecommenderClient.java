@@ -87,6 +87,7 @@ public class AgentRecommenderClient {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
                             {"/bin/sh", "-c", pathToLLama + "server -m " + pathToModel + " --port " + port + " &"}));
+                    proc_server.waitFor();
                     new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
@@ -95,7 +96,7 @@ public class AgentRecommenderClient {
                         throw new RuntimeException("Failed to start server\n" + sw);
                     }
 
-                } catch (IOException e) {
+                } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
                 }
             }
