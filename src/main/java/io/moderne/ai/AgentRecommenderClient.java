@@ -52,7 +52,7 @@ public class AgentRecommenderClient {
 
     static String pathToFiles = "/app/";
 
-    static String port = "7878";
+    static String port = "7870";
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
@@ -116,9 +116,6 @@ public class AgentRecommenderClient {
     private boolean checkForUp(Process proc) {
         for (int i = 0; i < 60; i++) {
             try {
-                if (proc.exitValue() != 0) {
-                    return false;
-                }
                 if (checkForUpRequest() == 200) {
                     return true;
                 }
@@ -182,9 +179,7 @@ public class AgentRecommenderClient {
                         .post("http://127.0.0.1:" + port + "/completion")
                         .withContent("application/json" ,
                                 mapper.writeValueAsBytes(input)).send();
-
             } catch (JsonProcessingException e) {
-
                 throw new RuntimeException(e);
             }
 
