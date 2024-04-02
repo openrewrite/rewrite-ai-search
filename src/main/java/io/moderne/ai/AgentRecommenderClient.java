@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import lombok.Value;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
@@ -54,44 +57,61 @@ public class AgentRecommenderClient {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
             File f = new File(pathToLLama + "main");
-            if(f.exists() && !f.isDirectory() ) {
+            if(!(f.exists() && !f.isDirectory()) ) {
+                //Build llama.cpp
+                StringWriter sw = new StringWriter();
+                PrintWriter procOut = new PrintWriter(sw);
+                try {
+                    Runtime runtime = Runtime.getRuntime();
+                    Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C " + pathToLLama});
+                    proc_make.waitFor();
+                    new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
+                            .forEach(procOut::println);
+                    new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
+                            .forEach(procOut::println);
+                    if (proc_make.exitValue() != 0) {
+                        throw new RuntimeException("Failed to make llama.cpp at " + pathToLLama + "\n" + sw);
+                    }
+
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e + "\nOutput: " + sw);
+                }
                 INSTANCE = new AgentRecommenderClient();
-//                return INSTANCE;
             }
-            StringWriter sw = new StringWriter();
-            PrintWriter procOut = new PrintWriter(sw);
-            try {
 
-                Runtime runtime = Runtime.getRuntime();
-                Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C "+ pathToLLama});
-                proc_make.waitFor();
+            //Start server
+            if (INSTANCE.checkForUpRequest() != 200) {
+                StringWriter sw = new StringWriter();
+                PrintWriter procOut = new PrintWriter(sw);
+                try {
+                    Runtime runtime = Runtime.getRuntime();
+                    Process proc_server = runtime.exec((new String[]
+                            {"/bin/sh", "-c", pathToLLama + "server -m " + pathToModel + " --port " + port + " &"}));
+                    new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
+                            .forEach(procOut::println);
+                    new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
+                            .forEach(procOut::println);
+                    if (proc_server.exitValue() != 0) {
+                        throw new RuntimeException("Failed to start server\n" + sw);
+                    }
 
-                new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
-                        .forEach(procOut::println);
-                new BufferedReader(new InputStreamReader(proc_make.getErrorStream())).lines()
-                        .forEach(procOut::println);
-                if (proc_make.exitValue() != 0) {
-                    throw new RuntimeException("Failed to make llama.cpp at " + pathToLLama + "\n" + sw);
+                } catch (IOException e) {
+                    throw new RuntimeException(e + "\nOutput: " + sw);
                 }
-
-                //Once llama is build, start server
-                Process proc_server = runtime.exec((new String[]
-                        {"/bin/sh", "-c", pathToLLama + "server -m " + pathToModel + " --port " + port + " &"}));
-                new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
-                        .forEach(procOut::println);
-                new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
-                        .forEach(procOut::println);
-                if (proc_server.exitValue() != 0) {
-                    throw new RuntimeException("Failed to start server\n" + sw);
-                }
-
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e + "\nOutput: " + sw);
             }
-            INSTANCE = new AgentRecommenderClient();
+
             return INSTANCE;
         }
         return INSTANCE;
+    }
+
+    private int checkForUpRequest() {
+        try {
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:"+port.toString()).asString();
+            return response.getStatus();
+        } catch (UnirestException e) {
+            return 523;
+        }
     }
 
     public static void populateMethodsToSample(String pathToCenters) {
@@ -118,9 +138,6 @@ public class AgentRecommenderClient {
     }
 
     public ArrayList<String> getRecommendations(String code, int batch_size) {
-
-
-
         StringWriter sw = new StringWriter();
         PrintWriter procOut = new PrintWriter(sw);
         StringWriter errorSw = new StringWriter();
