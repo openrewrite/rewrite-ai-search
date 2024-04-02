@@ -47,10 +47,10 @@ public class AgentRecommenderClient {
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    static String pathToModel = "/MODELS/codellama.gguf";
-    static String pathToLLama = "/app/llama.cpp";
+    static String pathToModel = "/Users/juju/Desktop/scratch/codellama.gguf";//"/MODELS/codellama.gguf";
+    static String pathToLLama = "/Users/juju/Desktop/scratch/llama.cpp";//"/app/llama.cpp";
 
-    static String pathToFiles = "/app/";
+    static String pathToFiles = "/Users/juju/Desktop/moderne/llama.cpp/";//"/app/";
 
     static String port = "7878";
     public static synchronized AgentRecommenderClient getInstance() {
@@ -86,7 +86,7 @@ public class AgentRecommenderClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "server -m " + pathToModel + " --port " + port + " &"}));
+                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port + " &"}));
                     proc_server.waitFor();
                     new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
                             .forEach(procOut::println);
@@ -220,48 +220,50 @@ public class AgentRecommenderClient {
     }
 
     public boolean isRelated(String query, String code) {
-        //Make call to model
         StringWriter sw = new StringWriter();
-        PrintWriter procOut = new PrintWriter(sw);
-        StringWriter errorSw = new StringWriter();
+        String promptContent = "Does this query match the code snippet?\n";
+        promptContent += "Query: " + query + "\n";
+        promptContent += "Code: " + code + "\n";
+        promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
+        promptContent = "[INST]" + promptContent + "[/INST]ANS:";
+        HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
+        HttpSender.Response raw = null;
 
-        try (
-                FileWriter fileWriter = new FileWriter("/app/inputRelated.txt", false)
-        ) {
-            // Write a temporary file for input which includes prompt and relevant code snippet
-            String line;
-            String promptContent = "Does this query match the code snippet?\n";
-            promptContent += "Query: " + query + "\n";
-            promptContent += "Code: " + code + "\n";
-            promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
-            fileWriter.write("[INST]" + promptContent + "[/INST]ANS:" );
-            fileWriter.close();
+        HashMap <String, Object> input = new HashMap<>();
+        input.put("stream", false);
+        input.put("prompt", promptContent);
+        input.put("temperature", Double.valueOf(0.0));
+        input.put("n_predict", 10);
+        //TODO: get probs of responses
 
-            // Arguments to send to model
-            String contextLength = String.valueOf((int) ((code.length() + query.length()) / 3.5) + 100); //buffer of 100
-            String cmd = "/app/llama.cpp/main -m /MODELS/codellama.gguf";
-            String flags = " -f /app/inputRelated.txt --temp 0.01"
-                    + " -n 2 -c " + contextLength +
-                    " 2>/app/llama_log.txt --no-display-prompt";
+        try {
+            raw = http
+                    .post("http://127.0.0.1:" + port + "/completion")
+                    .withContent("application/json" ,
+                            mapper.writeValueAsBytes(input)).send();
 
-            // Call llama.cpp
-            Runtime runtime = Runtime.getRuntime();
-            Process proc_llama = runtime.exec(new String[]{"/bin/sh", "-c", cmd + flags});
-            proc_llama.waitFor();
-            new BufferedReader(new InputStreamReader(proc_llama.getInputStream())).lines()
-                    .forEach(procOut::println);
-
-            return parseRelated(sw);
-
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e + "\nOutput: " + errorSw);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
 
+        if (!raw.isSuccessful()) {
+            throw new IllegalStateException("Unable to get response from server. HTTP " + raw.getClass());
+        }
+        String textResponse = null;
+        try {
+            textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        boolean related = parseRelated(textResponse);
+
+        return related;
     }
 
-    private boolean parseRelated(StringWriter sw) {
+    private boolean parseRelated(String s) {
         // check if Yes or yes in output, return true if it does
-        return (sw.toString().contains("Yes") || sw.toString().contains("yes"));
+        return (s.contains("Yes") || s.contains("yes"));
 
     }
 
