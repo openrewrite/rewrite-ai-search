@@ -47,10 +47,10 @@ public class AgentRecommenderClient {
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    static String pathToModel = "/Users/juju/Desktop/scratch/codellama.gguf";//"/MODELS/codellama.gguf";
-    static String pathToLLama = "/Users/juju/Desktop/scratch/llama.cpp";//"/app/llama.cpp";
+    static String pathToModel = "/MODELS/codellama.gguf";
+    static String pathToLLama = "/app/llama.cpp";
 
-    static String pathToFiles = "/Users/juju/Desktop/moderne/llama.cpp/";//"/app/";
+    static String pathToFiles = "/app/";
 
     static String port = "7878";
     public static synchronized AgentRecommenderClient getInstance() {
