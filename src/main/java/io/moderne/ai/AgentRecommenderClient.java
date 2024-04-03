@@ -52,7 +52,7 @@ public class AgentRecommenderClient {
 
     static String pathToFiles = "/app/";
 
-    static String port = "7870";
+    static String port = "7871";
     public static synchronized AgentRecommenderClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
@@ -91,11 +91,12 @@ public class AgentRecommenderClient {
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
                             .forEach(procOut::println);
-                    if (!INSTANCE.checkForUp(proc_server)) {
+                    Thread.sleep(10_000);
+                    if (!INSTANCE.checkForUp()) {
                         throw new RuntimeException("Failed to start server\n" + sw);
                     }
 
-                } catch (IOException  e) {
+                } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
                 }
             }
@@ -113,7 +114,7 @@ public class AgentRecommenderClient {
             return 523;
         }
     }
-    private boolean checkForUp(Process proc) {
+    private boolean checkForUp() {
         for (int i = 0; i < 60; i++) {
             try {
                 if (checkForUpRequest() == 200) {

@@ -31,6 +31,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 
@@ -50,7 +51,7 @@ public class GetRecommendations extends Recipe {
     String path = "/app/methodsToSample.txt" ;
 
     transient Recommendations recommendations_table = new Recommendations(this);
-    private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Random random = new Random(13);
     @Override
     public String getDisplayName() {
         return "Get recommendations";
@@ -73,7 +74,7 @@ public class GetRecommendations extends Recipe {
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
                 if (random_sampling){
-                    isMethodToSample = secureRandom.nextInt(200) <= 1;
+                    isMethodToSample = random.nextInt(200) <= 1;
                 }
                 else{
                     //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
