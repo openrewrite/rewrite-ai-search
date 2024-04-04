@@ -37,10 +37,6 @@ public class Recommendations extends DataTable<Recommendations.Row> {
                 description = "Name of the class or method")
         String name;
 
-        @Column(displayName = "Number of batches",
-                description = "n_batch value passed to llamacpp")
-        int n_batch;
-
         @Column(displayName = "Lantency",
                 description = "Latency in seconds to get recommendations")
         double latency;

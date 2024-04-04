@@ -15,7 +15,7 @@
  */
 package io.moderne.ai.research;
 
-import io.moderne.ai.AgentRecommenderClient;
+import io.moderne.ai.AgentGenerativeModelClient;
 import io.moderne.ai.table.Recommendations;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
@@ -27,7 +27,6 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,10 +38,6 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = false)
 public class GetRecommendations extends Recipe {
 
-    @Option(displayName = "batch size",
-            description = "batch size for testing purposes",
-            example = "512")
-    int n_batch;
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
@@ -64,7 +59,8 @@ public class GetRecommendations extends Recipe {
     }
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-        if (!random_sampling){AgentRecommenderClient.populateMethodsToSample(path);}
+        if (!random_sampling){
+            AgentGenerativeModelClient.populateMethodsToSample(path);}
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
@@ -78,15 +74,14 @@ public class GetRecommendations extends Recipe {
                 }
                 else{
                     //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
-                    HashMap<String, String> methodsToSample = AgentRecommenderClient.getMethodsToSample();
+                    HashMap<String, String> methodsToSample = AgentGenerativeModelClient.getMethodsToSample();
                     isMethodToSample = methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName());
                 }
                 if ( isMethodToSample ) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;
-                    recommendations = AgentRecommenderClient.getInstance().getRecommendations(md.printTrimmed(getCursor()),
-                            n_batch);
+                    recommendations = AgentGenerativeModelClient.getInstance().getRecommendations(md.printTrimmed(getCursor()));
 
                     List<String> recommendationsQuoted = recommendations.stream()
                             .map(element -> "\"" + element + "\"")
@@ -97,7 +92,6 @@ public class GetRecommendations extends Recipe {
                     double elapsedTime = (System.nanoTime()-time)/1e9;
 
                     recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
-                            n_batch,
                             elapsedTime,
                             tokenSize,
                             recommendationsAsString));

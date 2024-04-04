@@ -32,16 +32,15 @@ import java.io.*;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class AgentRecommenderClient {
+public class AgentGenerativeModelClient {
     @Nullable
-    private static AgentRecommenderClient INSTANCE;
+    private static AgentGenerativeModelClient INSTANCE;
     private static HashMap<String, String> methodsToSample;
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
@@ -53,7 +52,7 @@ public class AgentRecommenderClient {
     static String pathToFiles = "/app/";
 
     static String port = "7871";
-    public static synchronized AgentRecommenderClient getInstance() {
+    public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
             File f = new File(pathToLLama + "main");
@@ -76,7 +75,7 @@ public class AgentRecommenderClient {
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
                 }
-                INSTANCE = new AgentRecommenderClient();
+                INSTANCE = new AgentGenerativeModelClient();
             }
 
             //Start server
@@ -91,7 +90,7 @@ public class AgentRecommenderClient {
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
                             .forEach(procOut::println);
-                    Thread.sleep(10_000);
+                    Thread.sleep(10_000); //TODO: Why is this needed?
                     if (!INSTANCE.checkForUp()) {
                         throw new RuntimeException("Failed to start server\n" + sw);
                     }
@@ -108,7 +107,7 @@ public class AgentRecommenderClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:"+port.toString()).asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:"+port).asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
@@ -151,13 +150,9 @@ public class AgentRecommenderClient {
         return methodsToSample;
     }
 
-    public ArrayList<String> getRecommendations(String code, int batch_size) {
-        StringWriter sw = new StringWriter();
-        PrintWriter procOut = new PrintWriter(sw);
-        StringWriter errorSw = new StringWriter();
-
+    public ArrayList<String> getRecommendations(String code) {
         try (
-                BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToFiles + "prompt.txt"));
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToFiles + "prompt.txt"))
         ) {
             // Write a temporary file for input which includes prompt and relevant code snippet
             String line;
@@ -167,12 +162,12 @@ public class AgentRecommenderClient {
             }
             String text = "[INST]" + promptContent + code + "```\n[/INST]1." ;
             HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
-            HttpSender.Response raw = null;
+            HttpSender.Response raw;
 
             HashMap <String, Object> input = new HashMap<>();
             input.put("stream", false);
             input.put("prompt", text);
-            input.put("temperature", Double.valueOf(0.5));
+            input.put("temperature", 0.5);
             input.put("n_predict", 150);
 
             try {
@@ -188,12 +183,9 @@ public class AgentRecommenderClient {
             if (!raw.isSuccessful()) {
                 throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
             }
-            String textResponse = null;
-            try {
-                textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            String textResponse;
+            textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
+
 
             ArrayList<String> recommendations = parseRecommendations("1." + textResponse);
 
@@ -211,7 +203,7 @@ public class AgentRecommenderClient {
             return recommendations;
 
         } catch (IOException e) {
-            throw new RuntimeException(e + "\nOutput: " + errorSw);
+            throw new RuntimeException(e);
         }
     }
 
@@ -231,19 +223,18 @@ public class AgentRecommenderClient {
     }
 
     public boolean isRelated(String query, String code) {
-        StringWriter sw = new StringWriter();
         String promptContent = "Does this query match the code snippet?\n";
         promptContent += "Query: " + query + "\n";
         promptContent += "Code: " + code + "\n";
         promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
         promptContent = "[INST]" + promptContent + "[/INST]ANS:";
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
-        HttpSender.Response raw = null;
+        HttpSender.Response raw;
 
         HashMap <String, Object> input = new HashMap<>();
         input.put("stream", false);
         input.put("prompt", promptContent);
-        input.put("temperature", Double.valueOf(0.0));
+        input.put("temperature", 0.0);
         input.put("n_predict", 10);
         //TODO: get probs of responses
 
@@ -260,16 +251,14 @@ public class AgentRecommenderClient {
         if (!raw.isSuccessful()) {
             throw new IllegalStateException("Unable to get response from server. HTTP " + raw.getClass());
         }
-        String textResponse = null;
+        String textResponse;
         try {
             textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        boolean related = parseRelated(textResponse);
-
-        return related;
+        return parseRelated(textResponse);
     }
 
     private boolean parseRelated(String s) {
