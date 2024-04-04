@@ -25,7 +25,7 @@ import static org.openrewrite.java.Assertions.java;
 class GetRecommendationsTest implements RewriteTest {
     @Test
     void methods() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations(8, true)),
+        rewriteRun( spec -> spec.recipe(new GetRecommendations( true)),
           java(
                 """
                 public class Foo {
