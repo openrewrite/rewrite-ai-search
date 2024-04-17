@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package io.moderne.ai;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,6 +33,7 @@ import java.io.*;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,7 +53,7 @@ public class AgentGenerativeModelClient {
 
     static String pathToFiles = "/app/";
 
-    static String port = "7871";
+    static String port = "7878";
     public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
@@ -222,7 +224,7 @@ public class AgentGenerativeModelClient {
         }
     }
 
-    public boolean isRelated(String query, String code) {
+    public boolean isRelated(String query, String code, double threshold) {
         String promptContent = "Does this query match the code snippet?\n";
         promptContent += "Query: " + query + "\n";
         promptContent += "Code: " + code + "\n";
@@ -235,7 +237,8 @@ public class AgentGenerativeModelClient {
         input.put("stream", false);
         input.put("prompt", promptContent);
         input.put("temperature", 0.0);
-        input.put("n_predict", 10);
+        input.put("n_predict", 3);
+        input.put("n_probs", 10);
         //TODO: get probs of responses
 
         try {
@@ -251,14 +254,14 @@ public class AgentGenerativeModelClient {
         if (!raw.isSuccessful()) {
             throw new IllegalStateException("Unable to get response from server. HTTP " + raw.getClass());
         }
-        String textResponse;
+        boolean relatedResponse;
         try {
-            textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
+            relatedResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponseProbabilities.class).isRelated(threshold);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        return parseRelated(textResponse);
+        return relatedResponse;
     }
 
     private boolean parseRelated(String s) {
@@ -266,7 +269,6 @@ public class AgentGenerativeModelClient {
         return (s.contains("Yes") || s.contains("yes"));
 
     }
-
     @Value
     private static class LlamaResponse {
         String content;
@@ -275,4 +277,55 @@ public class AgentGenerativeModelClient {
         }
     }
 
+
+    @Value
+    public static class LlamaResponseProbabilities {
+        List<CompletionProbability> completionProbabilities;
+        String content;
+        boolean multimodal;
+        int slotId;
+        boolean stop;
+
+        @JsonProperty("completion_probabilities")
+        public List<CompletionProbability> getCompletionProbabilities() {
+            return completionProbabilities;
+        }
+
+        public boolean isRelated(double threshold) {
+            for (CompletionProbability cp : completionProbabilities) {
+                if (cp.getContent().equals(" Yes")) {
+                    return cp.getProbs().get(0).getProb()>=threshold;
+                }
+            }
+            return false;
+        }
+    }
+
+    @Value
+    public static class CompletionProbability {
+        String content;
+        List<TokenProbability> probs;
+
+        public String getContent() {
+            return content;
+        }
+
+        public List<TokenProbability> getProbs() {
+            return probs;
+        }
+    }
+
+    @Value
+    public static class TokenProbability {
+        double prob;
+        String tokStr;
+
+        public double getProb() {
+            return prob;
+        }
+
+        public String getTokStr() {
+            return tokStr;
+        }
+    }
 }
