@@ -52,12 +52,6 @@ public class FindCodeThatResembles extends Recipe {
             example = "kong.unirest.* *(..)")
     List<String> methodFilters;
 
-     @Option(displayName = "Threshold",
-            description = "Tunes the sensitivity for matching. The lower the threshold, the stricter the matching is. " +
-                          "The higher the threshold, the more matches. Must be between 0 and 1, "+
-                          "but we recommend between 0.15-0.35.",
-            example = "0.25")
-    String threshold;
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
@@ -119,9 +113,8 @@ public class FindCodeThatResembles extends Recipe {
                     return super.visitMethodInvocation(method, ctx);
                 }
                 
-                double thresholdParsed = threshold != null ? Double.parseDouble(threshold) : 0.5;
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
-                        .getRelatedness(resembles, method.printTrimmed(getCursor()), thresholdParsed);
+                        .getRelatedness(resembles, method.printTrimmed(getCursor()));
                 for (Duration timing : related.getEmbeddingTimings()) {
                     requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
                     requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
@@ -130,10 +123,20 @@ public class FindCodeThatResembles extends Recipe {
                         max.set(timing.toNanos());
                     }
                 }
-                return related.isRelated() && AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor())) ?
+                int resultEmbeddingModels = related.isRelated();
+                boolean result;
+                if (resultEmbeddingModels == 0) {
+                    result = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()),  0.5932);
+                } else{
+                    result = resultEmbeddingModels == 1;
+                }
+
+                return  result  ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);
             }
         });
+
+
     }
 }

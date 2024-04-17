@@ -42,9 +42,9 @@ public class RelatedModelClient {
     @Nullable
     private static RelatedModelClient INSTANCE;
 
-    private final Map<Embedding, Boolean> embeddingCache = Collections.synchronizedMap(new LinkedHashMap<Embedding, Boolean>() {
+    private final Map<Related, Integer> relatedCache = Collections.synchronizedMap(new LinkedHashMap<Related, Integer>() {
         @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<Embedding, Boolean> eldest) {
+        protected boolean removeEldestEntry(java.util.Map.Entry<Related, Integer> eldest) {
             return size() > 1000;
         }
     });
@@ -73,12 +73,12 @@ public class RelatedModelClient {
     }
 
     private void start() {
-        Path pyLauncher = MODELS_DIR.resolve("get_related.py");
+        Path pyLauncher = MODELS_DIR.resolve("get_is_related.py");
         try {
-            Files.copy(requireNonNull(RelatedModelClient.class.getResourceAsStream("/get_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(requireNonNull(RelatedModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_related.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
@@ -114,38 +114,38 @@ public class RelatedModelClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7869").asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:7871").asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
         }
     }
 
-    public Relatedness getRelatedness(String t1, String t2, double threshold) {
+    public Relatedness getRelatedness(String t1, String t2) {
         List<Duration> timings = new ArrayList<>(2);
-        Embedding embedding = new Embedding(t1, t2, threshold);
-        boolean b1 = embeddingCache.computeIfAbsent(embedding, timeEmbedding(timings));
+        Related related = new Related(t1, t2);
+        int b1 = relatedCache.computeIfAbsent(related, timeEmbedding(timings));
         return new Relatedness(b1, timings);
     }
 
-    private Function<Embedding, Boolean> timeEmbedding(List<Duration> timings) {
+    private Function<Related, Integer> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            boolean b = getEmbedding(t.t1, t.t2, t.threshold);
+            int b = getRelated(t.t1, t.t2);
             if (timings.isEmpty()) {
-                timings.add(Duration.ofNanos(System.nanoTime() - start)); //What are nano seconds? https://en.wikipedia.org/wiki/Nanosecond
+                timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
             return b;
         };
     }
 
-    public boolean getEmbedding(String s1, String s2, double threshold) {
-        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7869/run/predict")
+    public int getRelated(String s1, String s2) {
+        HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7871/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(new Object[]{s1, s2, threshold}))
+                .body(new GradioRequest(new Object[]{s1, s2}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + response.getStatus());
+            throw new IllegalStateException("Unable to get if related. HTTP " + response.getStatus());
         }
         return response.getBody().isRelated();
     }
@@ -159,21 +159,26 @@ public class RelatedModelClient {
     private static class GradioResponse {
         String[] data;
 
-        public boolean isRelated() {
-            return data[0].equals("True");
+        public int isRelated() {
+            return Integer.parseInt(data[0]);
         }
     }
 
     @Value
     public static class Relatedness {
-        boolean isRelated;
+        int isRelated;
         List<Duration> embeddingTimings;
+
+        public int isRelated() {
+            return isRelated;
+        }
     }
 
     @Value
-    public static class Embedding {
+    public static class Related {
         String t1;
         String t2;
-        double threshold;
     }
+
+
 }
