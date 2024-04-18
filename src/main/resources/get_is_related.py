@@ -204,7 +204,7 @@ class ChainedClassifier():
         return ClassificationResult.MAYBE
 
 #initiliaze models
-thresholds = {"HF": [0.50, 0.60], "Distance": [0.1493, 0.18]}
+thresholds = {"HF": [1-0.3815, 1-0.1624], "Distance": [1-0.84894, 1-0.84572]}
 distance_classifier = Classifier(thresholds["Distance"][0], thresholds["Distance"][1], StaticModel("BAAI/bge-large-en-v1.5"), lower_score_indicates_true=True)
 mini_classifier = Classifier(thresholds["HF"][0], thresholds["HF"][1], HF("SmartComponents/bge-micro-v2"), lower_score_indicates_true=True)
 chained_classifier = ChainedClassifier([mini_classifier, distance_classifier])
