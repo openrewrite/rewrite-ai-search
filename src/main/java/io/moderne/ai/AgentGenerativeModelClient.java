@@ -204,7 +204,7 @@ public class AgentGenerativeModelClient {
 
 
             if (!raw.isSuccessful()) {
-                throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+                throw new IllegalStateException("Unable to get recommendations. HTTP " + raw.getClass());
             }
             String textResponse;
             textResponse = mapper.readValue(raw.getBodyAsBytes(), LlamaResponse.class).getResponse();
