@@ -136,7 +136,7 @@ class HF(Retriever):
         """caching wrapper for self.model.encode"""
         if s in self._cache:
             return self._cache[s]
-        encoded_input = self.tokenizer(s, padding=False, truncation=True, return_tensors='pt') #TODO: add truncation for mini model to 512
+        encoded_input = self.tokenizer(s, padding=False, truncation=True, return_tensors='pt', max_length=512) #TODO: add truncation for mini model to 512
         with torch.no_grad():
             model_output = self.model(**encoded_input)
             # Perform pooling. In this case, cls pooling.
@@ -144,15 +144,14 @@ class HF(Retriever):
         # normalize embeddings
         v = sentence_embeddings / np.linalg.norm(sentence_embeddings, ord=2, axis=1, keepdims=True)
         self._cache[s] = v
-
         return v
 
     def predict(self, query: str, snippet: str) -> float:
-        q_v = self._encode("Query: "+ query)
+        q_v = self._encode(query)
         s_v = self._encode(snippet)
 
         dist = np.linalg.norm(s_v - q_v)
-
+        print("HF: ", dist)
         return dist
 
 

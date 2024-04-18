@@ -72,6 +72,46 @@ class FindCodeThatResemblesTest implements RewriteTest {
     }
 
     @Test
+    void duplicateCalls() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
+          //language=java
+          java(
+            """
+              import kong.unirest.*;
+              class Test {
+                  void test() {
+                        Unirest.post("https://httpbin.org/post")
+                                .header("Content-Type", "application/json")
+                                .body("1")
+                                .asString();
+                        Unirest.post("https://httpbin.org/post")
+                                .header("Content-Type", "application/json")
+                                .body("1")
+                                .asString();
+                  }
+              }
+              """,
+            """
+              import kong.unirest.*;
+              class Test {
+                  void test() {
+                        /*~~>*/Unirest.post("https://httpbin.org/post")
+                                .header("Content-Type", "application/json")
+                                .body("1")
+                                .asString();
+                        /*~~>*/Unirest.post("https://httpbin.org/post")
+                                .header("Content-Type", "application/json")
+                                .body("1")
+                                .asString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
     void unirest2() {
         rewriteRun(
           spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
