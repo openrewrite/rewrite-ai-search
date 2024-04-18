@@ -34,6 +34,8 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,17 +49,33 @@ public class AgentGenerativeModelClient {
             .build()
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     static String pathToModel = "/MODELS/codellama.gguf";
     static String pathToLLama = "/app/llama.cpp";
 
     static String pathToFiles = "/app/";
 
     static String port = "7878";
+
+
+    /*
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
+    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
+    StringWriter sw = new StringWriter();
+    PrintWriter procOut = new PrintWriter(sw);
+    EXECUTOR_SERVICE.submit(() -> {
+        new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
+                .forEach(procOut::println);
+        new BufferedReader(new InputStreamReader(proc.getErrorStream())).lines()
+                .forEach(procOut::println);
+    });
+
+    Nate says there's an inherit io (to maybe if there's a bug in sending the error message, so all the io gets printed to the parent. an option on the process basically)
+     */
     public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
-            File f = new File(pathToLLama + "main");
+            File f = new File(pathToLLama + "/main");
             if(!(f.exists() && !f.isDirectory()) ) {
                 //Build llama.cpp
                 StringWriter sw = new StringWriter();
@@ -77,8 +95,9 @@ public class AgentGenerativeModelClient {
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
                 }
-                INSTANCE = new AgentGenerativeModelClient();
             }
+
+            INSTANCE = new AgentGenerativeModelClient();
 
             //Start server
             if (INSTANCE.checkForUpRequest() != 200) {
@@ -87,17 +106,19 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port +" &" }));
-                    new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
+                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port }));
+
+                    EXECUTOR_SERVICE.submit(() -> {new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
                             .forEach(procOut::println);
                     new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
                             .forEach(procOut::println);
-                    Thread.sleep(10_000); //TODO: Why is this needed?
+                    });
+
                     if (!INSTANCE.checkForUp()) {
                         throw new RuntimeException("Failed to start server\n" + sw);
                     }
 
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     throw new RuntimeException(e + "\nOutput: " + sw);
                 }
             }
