@@ -33,8 +33,7 @@ class FindCodeThatResemblesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new FindCodeThatResembles(
           "HTTP request with Content-Type application/json",
-          List.of("kong.unirest.* *(..)", "okhttp*..* *(..)", "org.springframework.web.reactive.function.client.WebClient *(..)",
-            "org.apache.hc..* *(..)", "org.apache.http.client..* *(..)")
+          10
         ));
     }
 
