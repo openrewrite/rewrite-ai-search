@@ -150,6 +150,13 @@ public class EmbeddingModelClient {
         };
     }
 
+    public double getDistance(String t1, String t2) {
+        float[] e1 = getEmbedding(t1);
+        float[] e2 = getEmbedding(t2);
+        return dist(e1, e2);
+
+    }
+
     private static double dist(float[] v1, float[] v2) {
         if (v1.length != v2.length) {
             throw new IllegalArgumentException("Vectors must have the same dimension");

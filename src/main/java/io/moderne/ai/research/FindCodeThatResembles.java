@@ -16,8 +16,10 @@
 package io.moderne.ai.research;
 
 import io.moderne.ai.AgentGenerativeModelClient;
+import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
+import io.moderne.ai.table.MethodInUse;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.*;
@@ -27,30 +29,31 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.SearchResult;
+import org.openrewrite.yaml.CopyValue;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
 @Value
-@EqualsAndHashCode(callSuper = false)
-public class FindCodeThatResembles extends Recipe {
+@EqualsAndHashCode(callSuper = true)
+public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.Accumulator> {
     @Option(displayName = "Resembles",
             description = "The text, either a natural language description or a code sample, " +
                           "that you are looking for.",
             example = "HTTP request with Content-Type application/json")
     String resembles;
 
-    @Option(displayName = "Method filters",
+    @Option(displayName = "top k methods",
             description = "Since AI based matching has a higher latency than rules based matching, " +
-                          "filter the methods that are searched for the `resembles` text. "+
-                          "You must include at least one method pattern.",
-            example = "kong.unirest.* *(..)")
-    List<String> methodFilters;
+                          "we do a first pass to find the top k methods using embeddings. "+
+                          "To narrow the scope, you can specify the top k methods as method filters.",
+            example = "1000")
+    int k;
 
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
@@ -65,11 +68,92 @@ public class FindCodeThatResembles extends Recipe {
         return "This recipe uses a hybrid rules-based and AI approach to find a method invocation" +
                " that resembles a search string.";
     }
+    public class MethodSignatureWithDistance{
+        String methodSignature;
+        String methodPattern;
+        double distance;
+
+
+        public MethodSignatureWithDistance(String methodSignature, String methodPattern, float distance) {
+            this.methodSignature = methodSignature;
+            this.methodPattern = methodPattern;
+            this.distance = distance;
+        }
+
+        public double getDistance() {
+            return this.distance;
+        }
+
+        public String getMethodPattern() {
+            return this.methodPattern;
+        }
+    }
+    public class Accumulator{
+        PriorityQueue<MethodSignatureWithDistance> methodSignaturesQueue = new PriorityQueue<>(Comparator.comparingDouble(MethodSignatureWithDistance::getDistance));
+        EmbeddingModelClient embeddingModelClient = EmbeddingModelClient.getInstance();
+
+        public void add(String methodSignature, String methodPattern, String resembles) {
+            for (MethodSignatureWithDistance entry : methodSignaturesQueue){
+                if (entry.methodPattern.equals(methodPattern)){
+                    return;
+                }
+            }
+            MethodSignatureWithDistance methodSignatureWithDistance = new MethodSignatureWithDistance(methodSignature,
+                            methodPattern,
+                            (float) embeddingModelClient.getDistance(resembles, methodSignature));
+            methodSignaturesQueue.add(methodSignatureWithDistance);
+        }
+
+        public List<String> getMethodSignaturesTopK(int k) {
+            List<String> topMethodPatterns = new ArrayList<>();
+            int count = 0;
+            for (MethodSignatureWithDistance entry : methodSignaturesQueue) {
+                if (count < k ) {
+                    topMethodPatterns.add(entry.getMethodPattern());
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            return topMethodPatterns;
+        }
+    }
 
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        List<MethodMatcher> methodMatchers = new ArrayList<>(methodFilters.size());
-        for (String m : methodFilters) {
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @SuppressWarnings("OptionalOfNullableMisuse")
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                cu.getTypesInUse().getUsedMethods().forEach(type -> {
+                    String methodSignature= "" ;
+                    methodSignature +=
+                            Optional.ofNullable(type.getDeclaringType()).map(Object::toString).orElse("") + " " +
+                            type.getName() + " " +
+                            Optional.of(type.getReturnType()).map(Object::toString).orElse("") + " " +
+                            type.getParameterNames().stream().collect(Collectors.joining(", ")) + " " +
+                            type.getParameterTypes().stream().map(Object::toString).collect(Collectors.joining(", "));
+                    String methodPattern = Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
+                            .orElse("").replaceAll("<[^>]*>", "")
+                            + " " + type.getName() + "(..)" ;
+                    acc.add(methodSignature, methodPattern, resembles);
+                });
+                return cu;
+            }
+        };
+
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
+        List<MethodMatcher> methodMatchers = new ArrayList<>(k);
+
+        for (String m : acc.getMethodSignaturesTopK(k)) {
             methodMatchers.add(new MethodMatcher(m, true));
         }
 
