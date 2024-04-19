@@ -66,7 +66,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     @Override
     public String getDescription() {
-        return "This recipe uses a hybrid rules-based and AI approach to find a method invocation" +
+        return "This recipe uses two phase AI approach to find a method invocation" +
                " that resembles a search string.";
     }
     public class MethodSignatureWithDistance{
