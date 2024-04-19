@@ -70,6 +70,7 @@ class FindCodeThatResemblesTest implements RewriteTest {
         );
     }
 
+
     @Test
     void duplicateCalls() {
         rewriteRun(
@@ -137,6 +138,66 @@ class FindCodeThatResemblesTest implements RewriteTest {
                     request
                             .body("1")
                             .asString();
+                  }
+              }
+              """
+          )
+        );
+    }
+
+    @Test
+    void topK() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
+          //language=java
+          java(
+            """
+              import kong.unirest.*;
+              class Test {
+                  void test() {
+                    HttpRequestWithBody request = Unirest.post("https://httpbin.org/post")
+                            .header("Content-Type", "application/json");
+                    request
+                            .body("1")
+                            .asString();
+                    System.out.println("Additional unrelated method");
+                    String string = "additional unrelated string";
+                    string.equals("additional unrelated string");
+                    string.repeat(10);
+                    string.replace(" ", "_");
+                    string.isEmpty();
+                    
+                    String stringHttpBody = returnHttpBody(string);
+                    
+                  }
+                  
+                  public String returnHttpBody(String body) {
+                        return body;
+                  }
+              }
+              """,
+            """
+              import kong.unirest.*;
+              class Test {
+                  void test() {
+                    HttpRequestWithBody request = /*~~>*/Unirest.post("https://httpbin.org/post")
+                            .header("Content-Type", "application/json");
+                    request
+                            .body("1")
+                            .asString();
+                    System.out.println("Additional unrelated method");
+                    String string = "additional unrelated string";
+                    string.equals("additional unrelated string");
+                    string.repeat(10);
+                    string.replace(" ", "_");
+                    string.isEmpty();
+                    
+                    String stringHttpBody = returnHttpBody(string);
+                    
+                  }
+                  
+                  public String returnHttpBody(String body) {
+                        return body;
                   }
               }
               """

@@ -151,7 +151,6 @@ class HF(Retriever):
         s_v = self._encode(snippet)
 
         dist = np.linalg.norm(s_v - q_v)
-        print("HF: ", dist)
         return dist
 
 
