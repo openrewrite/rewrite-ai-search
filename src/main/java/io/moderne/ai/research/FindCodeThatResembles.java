@@ -198,6 +198,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 for (MethodMatcher methodMatcher : methodMatchers) {
                     if (methodMatcher.matches(method)) {
                         matches = true;
+                        break;
                     }
                 }
                 if (!matches) {

@@ -61,6 +61,7 @@ public class EmbeddingModelClient {
             return size() > 1000;
         }
     });
+
     static {
         if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
             throw new IllegalStateException("Unable to create models directory at " + MODELS_DIR);
