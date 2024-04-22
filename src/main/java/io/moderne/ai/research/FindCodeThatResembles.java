@@ -172,25 +172,27 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         //noinspection unchecked
         return Preconditions.check(Preconditions.or(preconditions.toArray(new TreeVisitor[0])), new JavaIsoVisitor<ExecutionContext>() {
             @Override
-            public @Nullable J visit(@Nullable Tree tree, ExecutionContext ctx) {
-                if (tree instanceof SourceFile) {
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+
+                if (cu instanceof SourceFile) {
                     getCursor().putMessage("count", new AtomicInteger());
                     getCursor().putMessage("max", new AtomicLong());
                     getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
-                    J visit = super.visit(tree, ctx);
+                    J.CompilationUnit visit = super.visitCompilationUnit(cu, ctx);
                     if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
                         Duration max = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("max")).get());
                         performance.insertRow(ctx, new EmbeddingPerformance.Row((
-                                (SourceFile) tree).getSourcePath().toString(),
+                                (SourceFile) cu).getSourcePath().toString(),
                                 requireNonNull(getCursor().<AtomicInteger>getMessage("count")).get(),
                                 requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogram")).getBuckets(),
                                 max));
                     }
                     return visit;
                 } else {
-                    return super.visit(tree, ctx);
+                    return super.visitCompilationUnit(cu, ctx);
                 }
             }
+
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
