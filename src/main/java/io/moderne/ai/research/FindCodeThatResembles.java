@@ -222,10 +222,13 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 } else{
                     result = resultEmbeddingModels == 1;
                 }
+                 //removing to debug
+//                return  result  ?
+//                        SearchResult.found(method) :
+//                        super.visitMethodInvocation(method, ctx);
 
-                return  result  ?
-                        SearchResult.found(method) :
-                        super.visitMethodInvocation(method, ctx);
+                return super.visitMethodInvocation(method, ctx);
+
             }
         });
 
