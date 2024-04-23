@@ -59,4 +59,3 @@ class SpongeBobCaseTest implements RewriteTest {
     }
 
 }
-

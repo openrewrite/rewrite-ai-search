@@ -73,4 +73,3 @@ class FindCommentsLanguageTest implements RewriteTest {
     }
 
 }
-

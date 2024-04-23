@@ -76,4 +76,3 @@ class SpellCheckCommentsInFrenchPomXmlTest implements RewriteTest {
         );
     }
 }
-
