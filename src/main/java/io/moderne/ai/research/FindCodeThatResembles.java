@@ -19,9 +19,10 @@ import io.moderne.ai.AgentGenerativeModelClient;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.EmbeddingPerformance;
-import io.moderne.ai.table.MethodInUse;
 import lombok.EqualsAndHashCode;
+import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.experimental.NonFinal;
 import org.openrewrite.*;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
@@ -29,7 +30,6 @@ import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.SearchResult;
-import org.openrewrite.yaml.CopyValue;
 
 import java.time.Duration;
 import java.util.*;
@@ -41,7 +41,7 @@ import java.util.stream.IntStream;
 import static java.util.Objects.requireNonNull;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.Accumulator> {
     @Option(displayName = "Resembles",
             description = "The text, either a natural language description or a code sample, " +
@@ -51,7 +51,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     @Option(displayName = "top k methods",
             description = "Since AI based matching has a higher latency than rules based matching, " +
-                          "we do a first pass to find the top k methods using embeddings. "+
+                          "we do a first pass to find the top k methods using embeddings. " +
                           "To narrow the scope, you can specify the top k methods as method filters.",
             example = "1000")
     int k;
@@ -69,52 +69,43 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         return "This recipe uses two phase AI approach to find a method invocation" +
                " that resembles a search string.";
     }
-    public class MethodSignatureWithDistance{
+
+    @Value
+    private static class MethodSignatureWithDistance {
         String methodSignature;
         String methodPattern;
         double distance;
-
-
-        public MethodSignatureWithDistance(String methodSignature, String methodPattern, float distance) {
-            this.methodSignature = methodSignature;
-            this.methodPattern = methodPattern;
-            this.distance = distance;
-        }
-
-        public double getDistance() {
-            return this.distance;
-        }
-
-        public String getMethodPattern() {
-            return this.methodPattern;
-        }
     }
-    public class Accumulator{
+
+    @Value
+    @RequiredArgsConstructor
+    public static class Accumulator {
+        int k;
         PriorityQueue<MethodSignatureWithDistance> methodSignaturesQueue = new PriorityQueue<>(Comparator.comparingDouble(MethodSignatureWithDistance::getDistance));
         EmbeddingModelClient embeddingModelClient = EmbeddingModelClient.getInstance();
+        @NonFinal
+        @Nullable
+        List<MethodMatcher> topMethodPatterns;
 
         public void add(String methodSignature, String methodPattern, String resembles) {
-            for (MethodSignatureWithDistance entry : methodSignaturesQueue){
-                if (entry.methodPattern.equals(methodPattern)){
+            for (MethodSignatureWithDistance entry : methodSignaturesQueue) {
+                if (entry.methodPattern.equals(methodPattern)) {
                     return;
                 }
             }
             MethodSignatureWithDistance methodSignatureWithDistance = new MethodSignatureWithDistance(methodSignature,
-                            methodPattern,
-                            (float) embeddingModelClient.getDistance(resembles, methodSignature));
+                    methodPattern,
+                    (float) embeddingModelClient.getDistance(resembles, methodSignature));
             methodSignaturesQueue.add(methodSignatureWithDistance);
         }
 
-        public List<String> getMethodSignaturesTopK(int k) {
-            List<String> topMethodPatterns = new ArrayList<>();
-            int count = 0;
-            for (MethodSignatureWithDistance entry : methodSignaturesQueue) {
-                if (count < k ) {
-                    topMethodPatterns.add(entry.getMethodPattern());
-                    count++;
-                } else {
-                    break;
-                }
+        public List<MethodMatcher> getMethodMatchersTopK() {
+            if (topMethodPatterns != null) {
+                return topMethodPatterns;
+            }
+            topMethodPatterns = new ArrayList<>(k);
+            for (int i = 0; i < k && !methodSignaturesQueue.isEmpty(); i++) {
+                topMethodPatterns.add(new MethodMatcher(methodSignaturesQueue.poll().getMethodPattern(), true));
             }
             return topMethodPatterns;
         }
@@ -122,14 +113,14 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     @Override
     public Accumulator getInitialValue(ExecutionContext ctx) {
-        return new Accumulator();
+        return new Accumulator(k);
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
         return new JavaIsoVisitor<ExecutionContext>() {
 
-            private String extractTypeName(String fullyQualifiedTypeName){
+            private String extractTypeName(String fullyQualifiedTypeName) {
                 return fullyQualifiedTypeName.substring(fullyQualifiedTypeName.lastIndexOf('.') + 1);
             }
 
@@ -137,7 +128,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 cu.getTypesInUse().getUsedMethods().forEach(type -> {
-                    String methodSignature= "" ;
+                    String methodSignature = "";
                     methodSignature +=
                             extractTypeName(Optional.of(type.getReturnType()).map(Object::toString).orElse("")) + " " +
                             type.getName() + " (" +
@@ -146,23 +137,18 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                                                    + " " + type.getParameterNames().get(i))
                                     .collect(Collectors.joining(", ")) + ")";
                     String methodPattern = Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
-                            .orElse("").replaceAll("<[^>]*>", "")
-                            + " " + type.getName() + "(..)" ;
+                                                   .orElse("").replaceAll("<.*>", "")
+                                           + " " + type.getName() + "(..)";
                     acc.add(methodSignature, methodPattern, resembles);
                 });
                 return cu;
             }
         };
-
     }
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        List<MethodMatcher> methodMatchers = new ArrayList<>(k);
-
-        for (String m : acc.getMethodSignaturesTopK(k)) {
-            methodMatchers.add(new MethodMatcher(m, true));
-        }
+        List<MethodMatcher> methodMatchers = acc.getMethodMatchersTopK();
 
         List<TreeVisitor<?, ExecutionContext>> preconditions = new ArrayList<>(methodMatchers.size());
         for (MethodMatcher m : methodMatchers) {
@@ -173,12 +159,12 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         return Preconditions.check(Preconditions.or(preconditions.toArray(new TreeVisitor[0])), new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-
-                if (cu instanceof SourceFile) {
-                    getCursor().putMessage("count", new AtomicInteger());
-                    getCursor().putMessage("max", new AtomicLong());
-                    getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
-                    J.CompilationUnit visit = super.visitCompilationUnit(cu, ctx);
+                getCursor().putMessage("count", new AtomicInteger());
+                getCursor().putMessage("max", new AtomicLong());
+                getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
+                try {
+                    return super.visitCompilationUnit(cu, ctx);
+                } finally {
                     if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
                         Duration max = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("max")).get());
                         performance.insertRow(ctx, new EmbeddingPerformance.Row((
@@ -187,12 +173,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                                 requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogram")).getBuckets(),
                                 max));
                     }
-                    return visit;
-                } else {
-                    return super.visitCompilationUnit(cu, ctx);
                 }
             }
-
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
@@ -206,7 +188,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
-                
+
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()));
                 for (Duration timing : related.getEmbeddingTimings()) {
@@ -220,16 +202,14 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 int resultEmbeddingModels = related.isRelated();
                 boolean result;
                 if (resultEmbeddingModels == 0) {
-                    result = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()),  0.5932);
-                } else{
+                    result = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()), 0.5932);
+                } else {
                     result = resultEmbeddingModels == 1;
                 }
-                return  result  ?
+                return result ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);
             }
         });
-
-
     }
 }
