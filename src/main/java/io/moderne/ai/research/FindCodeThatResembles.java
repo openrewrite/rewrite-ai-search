@@ -41,7 +41,7 @@ import java.util.stream.IntStream;
 import static java.util.Objects.requireNonNull;
 
 @Value
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = false)
 public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.Accumulator> {
     @Option(displayName = "Resembles",
             description = "The text, either a natural language description or a code sample, " +
