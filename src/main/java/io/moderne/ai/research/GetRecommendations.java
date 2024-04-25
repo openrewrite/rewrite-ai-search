@@ -105,4 +105,3 @@ public class GetRecommendations extends Recipe {
 
 
 }
-

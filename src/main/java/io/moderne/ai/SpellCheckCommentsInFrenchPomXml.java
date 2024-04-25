@@ -58,6 +58,3 @@ public class SpellCheckCommentsInFrenchPomXml extends Recipe {
         };
     }
 }
-
-
-
