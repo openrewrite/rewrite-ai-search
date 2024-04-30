@@ -24,8 +24,8 @@ import static org.openrewrite.java.Assertions.java;
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class GetRecommendationsTest implements RewriteTest {
     @Test
-    void methods() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations( true)),
+    void Methods() {
+        rewriteRun( spec -> spec.recipe(new GetRecommendations( false)),
           java(
                 """
                 public class Foo {
@@ -43,6 +43,28 @@ class GetRecommendationsTest implements RewriteTest {
                     }
                 }
                 """)
+        );
+    }
+    @Test
+    void RandomSampling() {
+        rewriteRun( spec -> spec.recipe(new GetRecommendations( true)),
+          java(
+            """
+            public class Foo {
+                public void springBoot(){
+                    System.out.println("Starting up Spring Boot");
+                }
+                 public void hi(){
+                    System.out.println("hi");
+                }
+                 public void whatsUp(){
+                    System.out.println("What's up!");
+                }
+                 public void stillHello(){
+                    System.out.println("Hello again");
+                }
+            }
+            """)
         );
     }
 
