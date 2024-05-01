@@ -41,9 +41,9 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
-    Boolean random_sampling;
+    Boolean randomSampling;
 
-    transient Recommendations recommendations_table = new Recommendations(this);
+    transient Recommendations recommendationsTable = new Recommendations(this);
     private static final Random random = new Random(13);
 
     @Override
@@ -124,7 +124,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 boolean isMethodToSample = false;
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                if (random_sampling) {
+                if (randomSampling) {
                     isMethodToSample = random.nextInt(200) <= 1;
                 } else {
                     for (Method methodToSample : acc.getMethodsToSample(10)) {
@@ -138,7 +138,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 if (isMethodToSample) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
-                    ArrayList<String> recommendations;
+                    List<String> recommendations;
                     recommendations = AgentGenerativeModelClient.getInstance().getRecommendations(md.printTrimmed(getCursor()));
 
                     List<String> recommendationsQuoted = recommendations.stream()
@@ -149,7 +149,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length() / 3.5 + recommendations.toString().length() / 3.5);
                     double elapsedTime = (System.nanoTime() - time) / 1e9;
 
-                    recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
+                    recommendationsTable.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
                             elapsedTime,
                             tokenSize,
                             recommendationsAsString));
