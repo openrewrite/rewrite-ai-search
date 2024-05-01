@@ -170,4 +170,3 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
     }
 
 }
-
