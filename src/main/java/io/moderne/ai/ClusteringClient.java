@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ public class ClusteringClient {
     @Nullable
     private static ClusteringClient INSTANCE;
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
@@ -125,7 +125,7 @@ public class ClusteringClient {
         }
     }
 
-    public String embeddingsToString(ArrayList<float[]> embeddings) {
+    public String embeddingsToString(List<float[]> embeddings) {
         StringBuilder embeddingsToString = new StringBuilder();
         for (int i = 0; i < embeddings.size(); i++) {
             // Convert each float array to a string and append it
@@ -140,7 +140,7 @@ public class ClusteringClient {
 
 
 
-    public int[] getCenters(ArrayList<float[]> embeddings, int numberOfCenters)  {
+    public int[] getCenters(List<float[]> embeddings, int numberOfCenters)  {
 
         String embeddingsToString = embeddingsToString(embeddings);
 

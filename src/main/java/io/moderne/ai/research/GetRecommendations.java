@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,14 @@ import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.Recommendations;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Option;
+import org.openrewrite.ScanningRecipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -34,7 +38,6 @@ import java.util.stream.Collectors;
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumulator> {
-
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
@@ -51,7 +54,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
     @Override
     public String getDescription() {
         return "This recipe calls an AI model to get recommendations for modernizing" +
-                " the code base by looking at a sample of method declarations.";
+               " the code base by looking at a sample of method declarations.";
     }
 
     @Value
@@ -61,9 +64,8 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
     }
 
     public class Accumulator {
-
-        ArrayList<Method> methods = new ArrayList<>();
-        ArrayList<float[]> embeddings = new ArrayList<>();
+        List<Method> methods = new ArrayList<>();
+        List<float[]> embeddings = new ArrayList<>();
 
         int[] centers;
 

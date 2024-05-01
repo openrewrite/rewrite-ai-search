@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,49 +24,54 @@ import static org.openrewrite.java.Assertions.java;
 @DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class GetRecommendationsTest implements RewriteTest {
     @Test
-    void Methods() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations( false)),
-          java(
-                """
-                public class Foo {
-                    public void springBoot(){
-                        System.out.println("Starting up Spring Boot");
-                    }
-                     public void hi(){
-                        System.out.println("hi");
-                    }
-                     public void whatsUp(){
-                        System.out.println("What's up!");
-                    }
-                     public void stillHello(){
-                        System.out.println("Hello again");
-                    }
-                }
-                """)
-        );
-    }
-    @Test
-    void RandomSampling() {
-        rewriteRun( spec -> spec.recipe(new GetRecommendations( true)),
+    void methods() {
+        rewriteRun(
+          spec -> spec.recipe(new GetRecommendations(false)),
+          //language=java
           java(
             """
-            public class Foo {
-                public void springBoot(){
-                    System.out.println("Starting up Spring Boot");
-                }
-                 public void hi(){
-                    System.out.println("hi");
-                }
-                 public void whatsUp(){
-                    System.out.println("What's up!");
-                }
-                 public void stillHello(){
-                    System.out.println("Hello again");
-                }
-            }
-            """)
+              public class Foo {
+                  public void springBoot(){
+                      System.out.println("Starting up Spring Boot");
+                  }
+                   public void hi(){
+                      System.out.println("hi");
+                  }
+                   public void whatsUp(){
+                      System.out.println("What's up!");
+                  }
+                   public void stillHello(){
+                      System.out.println("Hello again");
+                  }
+              }
+              """
+          )
         );
     }
 
-
+    @Test
+    void randomSampling() {
+        rewriteRun(
+          spec -> spec.recipe(new GetRecommendations(true)),
+          //language=java
+          java(
+            """
+              public class Foo {
+                  public void springBoot(){
+                      System.out.println("Starting up Spring Boot");
+                  }
+                   public void hi(){
+                      System.out.println("hi");
+                  }
+                   public void whatsUp(){
+                      System.out.println("What's up!");
+                  }
+                   public void stillHello(){
+                      System.out.println("Hello again");
+                  }
+              }
+              """
+          )
+        );
+    }
 }
