@@ -143,7 +143,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 if (isMethodToSample) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
-                    ArrayList<String> recommendations;
+                    List<String> recommendations;
                     recommendations = AgentGenerativeModelClient.getInstance().getRecommendations(md.printTrimmed(getCursor()));
 
                     List<String> recommendationsQuoted = recommendations.stream()
