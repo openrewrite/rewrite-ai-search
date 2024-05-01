@@ -44,9 +44,6 @@ def get_centers(embeddings, number_of_centers):
 
     # Find the closest data points to each centroid
     closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, embds)
-    # centroid_info = df.iloc[closest][["name", "source"]]
-    # formatted_lines = df.iloc[closest].apply(lambda x: f"{x['source']} {x['name']}", axis=1)
-    print(str(closest))
-    return str(closest)
+    return str(closest.tolist())
 
 gr.Interface(fn=get_centers, inputs=["text", "number"], outputs="text").launch(server_port=7876)
