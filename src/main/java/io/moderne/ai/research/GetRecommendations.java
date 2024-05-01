@@ -25,6 +25,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -41,6 +42,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
+    @Nullable
     Boolean randomSampling;
 
     transient Recommendations recommendationsTable = new Recommendations(this);
@@ -59,6 +61,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
 
     @Value
     public class Method {
+        String method;
         String name;
         String file;
     }
@@ -87,7 +90,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
         }
 
         public void addMethodToSample(String method, String methodName, String file) {
-            this.methods.add(new Method(methodName, file));
+            this.methods.add(new Method(method, methodName, file));
             this.embeddings.add(EmbeddingModelClient.getInstance().getEmbedding(method));
         }
 
@@ -128,7 +131,9 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                     isMethodToSample = random.nextInt(200) <= 1;
                 } else {
                     for (Method methodToSample : acc.getMethodsToSample(10)) {
-                        if (methodToSample.file.equals(source) && methodToSample.name.equals(md.getSimpleName())) {
+                        if (methodToSample.file.equals(source) &&
+                                methodToSample.name.equals(md.getSimpleName()) &&
+                                methodToSample.method.equals(md.printTrimmed(getCursor()))) {
                             isMethodToSample = true;
                             break;
                         }

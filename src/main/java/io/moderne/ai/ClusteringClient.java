@@ -54,22 +54,11 @@ public class ClusteringClient {
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
-    static {
-        if (!Files.exists(MODELS_DIR) && !MODELS_DIR.toFile().mkdirs()) {
-            throw new IllegalStateException("Unable to create models directory at " + MODELS_DIR);
-        }
-    }
 
     public static synchronized ClusteringClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new ClusteringClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
-                try {
-                    Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
                 INSTANCE.start();
             }
         }
@@ -82,7 +71,7 @@ public class ClusteringClient {
             Files.copy(requireNonNull(ClusteringClient.class.getResourceAsStream("/get_centers.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_centers.py", MODELS_DIR);
+            String cmd = String.format("/usr/bin/python3 %s/get_centers.py");
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
