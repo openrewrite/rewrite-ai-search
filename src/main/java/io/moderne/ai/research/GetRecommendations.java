@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,19 +16,20 @@
 package io.moderne.ai.research;
 
 import io.moderne.ai.AgentGenerativeModelClient;
+import io.moderne.ai.ClusteringClient;
+import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.table.Recommendations;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
-import org.openrewrite.Recipe;
+import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
@@ -36,17 +37,15 @@ import java.util.stream.Collectors;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
-public class GetRecommendations extends Recipe {
-
+public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumulator> {
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
     Boolean random_sampling;
 
-    String path = "/app/methodsToSample.txt" ;
-
     transient Recommendations recommendations_table = new Recommendations(this);
     private static final Random random = new Random(13);
+
     @Override
     public String getDisplayName() {
         return "Get recommendations";
@@ -57,27 +56,86 @@ public class GetRecommendations extends Recipe {
         return "This recipe calls an AI model to get recommendations for modernizing" +
                " the code base by looking at a sample of method declarations.";
     }
+
+    @Value
+    public class Method {
+        String name;
+        String file;
+    }
+
+    public class Accumulator {
+        List<Method> methods = new ArrayList<>();
+        List<float[]> embeddings = new ArrayList<>();
+
+        int[] centers;
+
+        public int[] getCenters(int numberOfCenters) {
+            if (this.centers == null) {
+                this.centers = ClusteringClient.getInstance().getCenters(this.embeddings, numberOfCenters);
+            }
+            return this.centers;
+        }
+
+        public Method[] getMethodsToSample(int numberOfCenters) {
+            int[] centersIndex = getCenters(numberOfCenters);
+            Method[] methodsToSample = new Method[centersIndex.length];
+            for (int i = 0; i < getCenters(numberOfCenters).length; i++) {
+                methodsToSample[i] = this.methods.get(centersIndex[i]);
+            }
+            return methodsToSample;
+
+        }
+
+        public void addMethodToSample(String method, String methodName, String file) {
+            this.methods.add(new Method(methodName, file));
+            this.embeddings.add(EmbeddingModelClient.getInstance().getEmbedding(method));
+        }
+
+    }
+
     @Override
-    public TreeVisitor<?, ExecutionContext> getVisitor() {
-        if (!random_sampling){
-            AgentGenerativeModelClient.populateMethodsToSample(path);}
+    public Accumulator getInitialValue(ExecutionContext ctx) {
+        return new Accumulator();
+    }
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+        return new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
+                J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
+                String methodName = md.getSimpleName();
+                JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                String source = javaSourceFile.getSourcePath().toString();
+                acc.addMethodToSample(md.printTrimmed(getCursor()), methodName, source);
+                return md;
+            }
+        };
+    }
+
+
+    @Override
+    public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
 
         return new JavaIsoVisitor<ExecutionContext>() {
             @Override
             public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
                 J.MethodDeclaration md = super.visitMethodDeclaration(method, ctx);
-                Boolean isMethodToSample = false;
+                boolean isMethodToSample = false;
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                if (random_sampling){
+                if (random_sampling) {
                     isMethodToSample = random.nextInt(200) <= 1;
+                } else {
+                    for (Method methodToSample : acc.getMethodsToSample(10)) {
+                        if (methodToSample.file.equals(source) && methodToSample.name.equals(md.getSimpleName())) {
+                            isMethodToSample = true;
+                            break;
+                        }
+                    }
+
                 }
-                else{
-                    //TODO: right now only method per file due to hashmap <String, String>... could be more than one!
-                    HashMap<String, String> methodsToSample = AgentGenerativeModelClient.getMethodsToSample();
-                    isMethodToSample = methodsToSample.get(source) != null && methodsToSample.get(source).equals(md.getSimpleName());
-                }
-                if ( isMethodToSample ) { // samples based on the results from running GetCodeEmbedding and clustering
+                if (isMethodToSample) { // samples based on the results from running GetCodeEmbedding and clustering
                     long time = System.nanoTime();
                     // Get recommendations
                     ArrayList<String> recommendations;
@@ -88,8 +146,8 @@ public class GetRecommendations extends Recipe {
                             .collect(Collectors.toList());
                     String recommendationsAsString = "[" + String.join(", ", recommendationsQuoted) + "]";
 
-                    int tokenSize = (int) ((md.printTrimmed(getCursor())).length()/3.5 + recommendations.toString().length()/3.5 ) ;
-                    double elapsedTime = (System.nanoTime()-time)/1e9;
+                    int tokenSize = (int) ((md.printTrimmed(getCursor())).length() / 3.5 + recommendations.toString().length() / 3.5);
+                    double elapsedTime = (System.nanoTime() - time) / 1e9;
 
                     recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
                             elapsedTime,
@@ -99,9 +157,5 @@ public class GetRecommendations extends Recipe {
                 return md;
             }
         };
-
-
-        }
-
-
+    }
 }
