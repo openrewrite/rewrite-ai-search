@@ -127,6 +127,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 boolean isMethodToSample = false;
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
+                boolean randomSampling = getRandomSampling() != null ? getRandomSampling() : false;
                 if (randomSampling) {
                     isMethodToSample = random.nextInt(200) <= 1;
                 } else {
