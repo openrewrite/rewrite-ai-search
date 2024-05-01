@@ -160,7 +160,8 @@ public class ClusteringClient {
         List<String> data;
 
         public int[] getCenters() {
-            return Arrays.stream(data.get(0).substring(1, data.get(0).length() - 1).split(",\\s*"))
+            return Arrays.stream(data.get(0).substring(1, data.get(0).length() - 1).trim().split("[\\s,]+"))
+                    .map(String::trim)
                     .mapToInt(Integer::parseInt)
                     .toArray();
         }
