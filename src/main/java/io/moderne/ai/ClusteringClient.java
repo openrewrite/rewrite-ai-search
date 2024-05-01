@@ -15,7 +15,6 @@
  */
 package io.moderne.ai;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.cfg.ConstructorDetector;
@@ -35,7 +34,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -60,13 +60,13 @@ public class ClusteringClient {
         }
     }
 
-    public static synchronized ClusteringClient getInstance()  {
+    public static synchronized ClusteringClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new ClusteringClient();
             if (INSTANCE.checkForUpRequest() != 200) {
                 String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
                 try {
-                    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
+                    Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -135,41 +135,25 @@ public class ClusteringClient {
                 embeddingsToString.append(",");
             }
         }
-        return "[" + embeddingsToString.toString() + "]";
+        return "[" + embeddingsToString + "]";
     }
 
-
-
-    public int[] getCenters(List<float[]> embeddings, int numberOfCenters)  {
-
-        String embeddingsToString = embeddingsToString(embeddings);
-
+    public int[] getCenters(List<float[]> embeddings, int numberOfCenters) {
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
-        HttpSender.Response raw = null;
-
-        try {
-            raw = http
-                    .post("http://127.0.0.1:7876/run/predict")
-                    .withContent("application/json" ,
-                            mapper.writeValueAsBytes(new ClusteringClient.GradioRequest(new Object[]{embeddingsToString, numberOfCenters})))
-                    .send();
-        } catch (JsonProcessingException e) {
-
-            throw new RuntimeException(e);
-        }
-
-
-        if (!raw.isSuccessful()) {
-            throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
-        }
-        int[] centersIndex = null;
-        try {
-            centersIndex = mapper.readValue(raw.getBodyAsBytes(), ClusteringClient.GradioResponse.class).getCenters();
-
+        try (HttpSender.Response raw = http
+                .post("http://127.0.0.1:7876/run/predict")
+                .withContent("application/json",
+                        mapper.writeValueAsBytes(new ClusteringClient.GradioRequest(new Object[]{
+                                embeddingsToString(embeddings),
+                                numberOfCenters})))
+                .send()) {
+            if (!raw.isSuccessful()) {
+                throw new IllegalStateException("Unable to get embedding. HTTP " + raw.getClass());
+            }
+            return mapper.readValue(raw.getBodyAsBytes(), GradioResponse.class).getCenters();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return centersIndex;
     }
 
     @Value
