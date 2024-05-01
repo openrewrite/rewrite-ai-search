@@ -25,6 +25,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.ScanningRecipe;
 import org.openrewrite.TreeVisitor;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
@@ -41,9 +42,10 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
 
     @Option(displayName = "random sampling",
             description = "Do random sampling or use clusters based on embeddings to sample.")
-    Boolean random_sampling;
+    @Nullable
+    Boolean randomSampling;
 
-    transient Recommendations recommendations_table = new Recommendations(this);
+    transient Recommendations recommendationsTable = new Recommendations(this);
     private static final Random random = new Random(13);
 
     @Override
@@ -59,6 +61,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
 
     @Value
     public class Method {
+        String method;
         String name;
         String file;
     }
@@ -87,7 +90,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
         }
 
         public void addMethodToSample(String method, String methodName, String file) {
-            this.methods.add(new Method(methodName, file));
+            this.methods.add(new Method(method, methodName, file));
             this.embeddings.add(EmbeddingModelClient.getInstance().getEmbedding(method));
         }
 
@@ -124,11 +127,13 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 boolean isMethodToSample = false;
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                if (random_sampling) {
+                if (randomSampling) {
                     isMethodToSample = random.nextInt(200) <= 1;
                 } else {
                     for (Method methodToSample : acc.getMethodsToSample(10)) {
-                        if (methodToSample.file.equals(source) && methodToSample.name.equals(md.getSimpleName())) {
+                        if (methodToSample.file.equals(source) &&
+                                methodToSample.name.equals(md.getSimpleName()) &&
+                                methodToSample.method.equals(md.printTrimmed(getCursor()))) {
                             isMethodToSample = true;
                             break;
                         }
@@ -149,7 +154,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                     int tokenSize = (int) ((md.printTrimmed(getCursor())).length() / 3.5 + recommendations.toString().length() / 3.5);
                     double elapsedTime = (System.nanoTime() - time) / 1e9;
 
-                    recommendations_table.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
+                    recommendationsTable.insertRow(ctx, new Recommendations.Row(md.getSimpleName(),
                             elapsedTime,
                             tokenSize,
                             recommendationsAsString));
