@@ -49,7 +49,7 @@ public class EmbeddingModelClient {
     @Nullable
     private static EmbeddingModelClient INSTANCE;
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
@@ -152,8 +152,9 @@ public class EmbeddingModelClient {
     }
 
     public double getDistance(String t1, String t2) {
-        float[] e1 = getEmbedding(t1);
-        float[] e2 = getEmbedding(t2);
+        List<Duration> timings = new ArrayList<>(2);
+        float[] e1 = embeddingCache.computeIfAbsent(t1, timeEmbedding(timings));
+        float[] e2 = embeddingCache.computeIfAbsent(t2, timeEmbedding(timings));
         return dist(e1, e2);
 
     }
@@ -199,7 +200,7 @@ public class EmbeddingModelClient {
 
     @Value
     private static class GradioRequest {
-        private final String[] data;
+        String[] data;
 
         GradioRequest(String... data) {
             this.data = data;

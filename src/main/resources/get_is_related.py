@@ -67,7 +67,7 @@ class Retriever(ABC):
         """Returns a normalized score between [0, 1] reflecting the likelihood that the snippet is a
         positive match for the query."""
 
-    def _scaled_sigmoid(self, a: np.number | np.ndarray) -> np.number | np.ndarray:
+    def _scaled_sigmoid(self, a):
         """a scaled sigmoid function to map values to [0, 1]"""
         return 1 / (1 + np.exp(-self._sigmoid_scale * (a - self._sigmoid_shift)))
 
