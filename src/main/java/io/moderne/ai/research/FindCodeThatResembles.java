@@ -57,6 +57,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     int k;
 
 
+    transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+
     @Override
     public String getDisplayName() {
         return "Find method invocations that resemble a pattern";
@@ -126,12 +128,12 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 cu.getTypesInUse().getUsedMethods().forEach(type -> {
-                    String methodSignature = "method signature: ";
+                    String methodSignature = "";
                     methodSignature +=
                             extractTypeName(Optional.of(type.getReturnType()).map(Object::toString).orElse("")) + " " +
                             type.getName() + " (" +
                             IntStream.range(0, type.getParameterNames().size())
-                                    .mapToObj(i -> type.getParameterTypes().get(i).toString()
+                                    .mapToObj(i -> extractTypeName(type.getParameterTypes().get(i).toString())
                                                    + " " + type.getParameterNames().get(i))
                                     .collect(Collectors.joining(", ")) + ")";
                     String methodPattern = Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
@@ -152,9 +154,28 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         for (MethodMatcher m : methodMatchers) {
             preconditions.add(new UsesMethod<>(m));
         }
+
         //noinspection unchecked
-        return Preconditions.check(Preconditions.and(Preconditions.or(preconditions.toArray(new TreeVisitor[0]))),
-                new JavaIsoVisitor<ExecutionContext>() {
+        return Preconditions.check(Preconditions.or(preconditions.toArray(new TreeVisitor[0])), new JavaIsoVisitor<ExecutionContext>() {
+            @Override
+            public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
+                getCursor().putMessage("count", new AtomicInteger());
+                getCursor().putMessage("max", new AtomicLong());
+                getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
+                try {
+                    return super.visitCompilationUnit(cu, ctx);
+                } finally {
+                    if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
+                        Duration max = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("max")).get());
+                        performance.insertRow(ctx, new EmbeddingPerformance.Row((
+                                (SourceFile) cu).getSourcePath().toString(),
+                                requireNonNull(getCursor().<AtomicInteger>getMessage("count")).get(),
+                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogram")).getBuckets(),
+                                max));
+                    }
+                }
+            }
+
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
                 boolean matches = false;
@@ -170,6 +191,14 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()));
+                for (Duration timing : related.getEmbeddingTimings()) {
+                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
+                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
+                    AtomicLong max = getCursor().getNearestMessage("max");
+                    if (requireNonNull(max).get() < timing.toNanos()) {
+                        max.set(timing.toNanos());
+                    }
+                }
                 int resultEmbeddingModels = related.isRelated();
                 boolean result;
                 if (resultEmbeddingModels == 0) {
