@@ -202,4 +202,35 @@ class FindCodeThatResemblesTest implements RewriteTest {
           )
         );
     }
+    @Test
+    void NoHits() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpath("unirest-java")),
+          //language=java
+          java(
+            """
+              import kong.unirest.*; import java.util.ArrayList; import java.util.List;
+              class Test {
+                  void test() {
+                    System.out.println("Additional unrelated method");
+                    String string = "additional unrelated string";
+                    string.equals("additional unrelated string");
+                    string.repeat(10);
+                    string.replace(" ", "_");
+                    string.isEmpty();
+                    
+                    List<String> stringHttpBody = returnHttpBody(string);
+                    
+                  }
+                  
+                  public List<String> returnHttpBody(String body) {
+                        return new ArrayList<String>();
+                  }
+                  
+                  public List<List<String>> returnHttpBody(String body, List<List<String>> listBody) {
+                        return listBody;
+                  }
+              }
+              """));
+    }
 }
