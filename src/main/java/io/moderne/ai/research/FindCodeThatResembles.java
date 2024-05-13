@@ -35,8 +35,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static java.util.Objects.requireNonNull;
 
@@ -118,30 +116,39 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     @Override
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
+
         return new JavaIsoVisitor<ExecutionContext>() {
 
+
             private String extractTypeName(String fullyQualifiedTypeName) {
-                return fullyQualifiedTypeName.substring(fullyQualifiedTypeName.lastIndexOf('.') + 1);
+                return fullyQualifiedTypeName.replace("<.*>", "")
+                        .substring(fullyQualifiedTypeName.lastIndexOf('.') + 1);
             }
 
             @SuppressWarnings("OptionalOfNullableMisuse")
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 cu.getTypesInUse().getUsedMethods().forEach(type -> {
-                    String methodSignature = "";
-                    methodSignature +=
-                            extractTypeName(Optional.of(type.getReturnType()).map(Object::toString).orElse("")) + " " +
-                            type.getName() + " (" +
-                            IntStream.range(0, type.getParameterNames().size())
-                                    .mapToObj(i -> extractTypeName(type.getParameterTypes().get(i).toString())
-                                                   + " " + type.getParameterNames().get(i))
-                                    .collect(Collectors.joining(", ")) + ")";
-                    String methodPattern = Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
-                                                   .orElse("").replaceAll("<.*>", "")
-                                           + " " + type.getName() + "(..)";
+                    String methodSignature = extractTypeName(Optional.ofNullable(type.getReturnType())
+                                    .map(Object::toString).orElse("")) + " " + type.getName() ;
+
+                    String[] parameters = new String[type.getParameterTypes().size()];
+                    for (int i = 0; i < type.getParameterTypes().size(); i++) {
+                        String typeName = extractTypeName(type.getParameterTypes().get(i).toString());
+                        String paramName = type.getParameterNames().get(i);
+                        parameters[i] = typeName + " " + paramName ;
+                    }
+
+                    methodSignature +=  "(" + String.join(", ", parameters) + ")";
+
+                    String methodPattern =
+                            Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
+                                                   .orElse("") + " " + type.getName() + "(..)";
+
                     acc.add(methodSignature, methodPattern, resembles);
                 });
-                return cu;
+
+                return super.visitCompilationUnit(cu, ctx);
             }
         };
     }
