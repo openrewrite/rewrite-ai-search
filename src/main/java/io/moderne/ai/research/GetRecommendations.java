@@ -45,6 +45,12 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
     @Nullable
     Boolean randomSampling;
 
+    @Option(displayName = "number of centers to sample"
+            , description = "Number of diverse centers to sample if you don't do random sampling per repository.",
+            example = "3",
+            required = false)
+    int numberOfCenters;
+
     transient Recommendations recommendationsTable = new Recommendations(this);
     private static final Random random = new Random(13);
 
@@ -131,7 +137,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 if (randomSampling) {
                     isMethodToSample = random.nextInt(200) <= 1;
                 } else {
-                    for (Method methodToSample : acc.getMethodsToSample(10)) {
+                    for (Method methodToSample : acc.getMethodsToSample(numberOfCenters)) {
                         if (methodToSample.file.equals(source) &&
                                 methodToSample.name.equals(md.getSimpleName()) &&
                                 methodToSample.method.equals(md.printTrimmed(getCursor()))) {
