@@ -26,7 +26,7 @@ class GetRecommendationsTest implements RewriteTest {
     @Test
     void methods() {
         rewriteRun(
-          spec -> spec.recipe(new GetRecommendations(false)),
+          spec -> spec.recipe(new GetRecommendations(false, 3)),
           //language=java
           java(
             """
@@ -52,7 +52,7 @@ class GetRecommendationsTest implements RewriteTest {
     @Test
     void randomSampling() {
         rewriteRun(
-          spec -> spec.recipe(new GetRecommendations(true)),
+          spec -> spec.recipe(new GetRecommendations(true, 3)),
           //language=java
           java(
             """
