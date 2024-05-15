@@ -18,6 +18,7 @@ package io.moderne.ai.research;
 import io.moderne.ai.AgentGenerativeModelClient;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.RelatedModelClient;
+import io.moderne.ai.table.CodeSearch;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.MethodMatcher;
 import org.openrewrite.java.search.UsesMethod;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.SearchResult;
 
 import java.time.Duration;
@@ -54,6 +56,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             example = "1000")
     int k;
 
+    transient CodeSearch codeSearchTable = new CodeSearch(this);
 
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
 
@@ -185,6 +188,11 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
+
+                if (!getLanguage().equals("java")) {
+                    return super.visitMethodInvocation(method, ctx);
+                }
+
                 boolean matches = false;
                 for (MethodMatcher methodMatcher : methodMatchers) {
                     if (methodMatcher.matches(method)) {
@@ -208,11 +216,25 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 }
                 int resultEmbeddingModels = related.isRelated();
                 boolean result;
+                boolean calledGenerativeModel = false;
                 if (resultEmbeddingModels == 0) {
                     result = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()), 0.5932);
+                    calledGenerativeModel = true;
                 } else {
                     result = resultEmbeddingModels == 1;
                 }
+
+                // Populate data table for debugging model's accuracy
+                JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                String source = javaSourceFile.getSourcePath().toString();
+                codeSearchTable.insertRow(ctx, new CodeSearch.Row(
+                        source,
+                        method.printTrimmed(getCursor()),
+                        resembles,
+                        resultEmbeddingModels,
+                        calledGenerativeModel ? ( result ? 1 : -1) : 0
+                ));
+
                 return result ?
                         SearchResult.found(method) :
                         super.visitMethodInvocation(method, ctx);
