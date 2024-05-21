@@ -167,6 +167,13 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
         //noinspection unchecked
         return Preconditions.check(Preconditions.or(preconditions.toArray(new TreeVisitor[0])), new JavaIsoVisitor<ExecutionContext>() {
+
+            @Override
+            public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
+                boolean acceptable = sourceFile instanceof J.CompilationUnit;
+                return acceptable;
+            }
+
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 getCursor().putMessage("count", new AtomicInteger());
@@ -188,10 +195,6 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
-
-                if (!getLanguage().equals("java")) {
-                    return super.visitMethodInvocation(method, ctx);
-                }
 
                 boolean matches = false;
                 for (MethodMatcher methodMatcher : methodMatchers) {
@@ -227,13 +230,15 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 // Populate data table for debugging model's accuracy
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                codeSearchTable.insertRow(ctx, new CodeSearch.Row(
-                        source,
-                        method.printTrimmed(getCursor()),
-                        resembles,
-                        resultEmbeddingModels,
-                        calledGenerativeModel ? ( result ? 1 : -1) : 0
-                ));
+                if (result) {
+                    codeSearchTable.insertRow(ctx, new CodeSearch.Row(
+                            source,
+                            method.printTrimmed(getCursor()),
+                            resembles,
+                            resultEmbeddingModels,
+                            calledGenerativeModel ? ( result ? 1 : -1) : 0
+                    ));
+                }
 
                 return result ?
                         SearchResult.found(method) :
