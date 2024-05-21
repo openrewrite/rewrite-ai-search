@@ -15,7 +15,7 @@
  */
 @NonNullApi
 @NonNullFields
-package io.moderne.ai.research;
+package io.moderne.transposeCapitalization;
 
 import org.openrewrite.internal.lang.NonNullApi;
 import org.openrewrite.internal.lang.NonNullFields;

@@ -15,8 +15,6 @@
  */
 package io.moderne.ai;
 
-import io.moderne.ai.LanguageDetectorModelClient;
-import io.moderne.ai.SpellCheckerClient;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;

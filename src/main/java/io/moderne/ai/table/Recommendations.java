@@ -20,8 +20,6 @@ import org.openrewrite.Column;
 import org.openrewrite.DataTable;
 import org.openrewrite.Recipe;
 
-import java.util.ArrayList;
-
 
 public class Recommendations extends DataTable<Recommendations.Row> {
 

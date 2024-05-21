@@ -13,39 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.moderne.transposeCapitalization;
+package io.moderne.ai;
 
+import io.moderne.ai.table.MethodInUse;
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
 
-class SpongeBobCaseTest implements RewriteTest {
-
+class ListAllMethodsUsedTest implements RewriteTest {
     @Override
     public void defaults(RecipeSpec spec) {
-        spec.recipe(new SpongeBobCase());
+        spec.recipe(new ListAllMethodsUsed());
     }
 
     @DocumentExample
     @Test
-    void unirest() {
-        //language=java
+    void listMethods() {
         rewriteRun(
+          spec -> spec.dataTable(MethodInUse.Row.class,
+            methods -> assertThat(methods).hasSize(2)
+              .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("println"))
+              .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("method1"))),
+          //language=java
           java(
             """
-              class HelloWorld { // Wow great class name
-                  void helloWorld() {
-                       System.out.println("Hello World"); // this prints out hello world
+              class A {
+                  void method1(){
+                      System.out.println("Hello");
                   }
-              }
-              """,
-            """
-              class HelloWorld { // WoW GrEaT clAsS nAME
-                  void helloWorld() {
-                       System.out.println("Hello World"); // ThIS pRiNtS oUT hElLo WoRLd
+                  void method2(){
+                      method1();
                   }
               }
               """

@@ -16,11 +16,12 @@
 package io.moderne.ai;
 
 
-import io.moderne.ai.LanguageDetectorModelClient;
 import io.moderne.ai.table.LanguageDistribution;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
+import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.JavaSourceFile;
