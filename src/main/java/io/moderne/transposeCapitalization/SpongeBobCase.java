@@ -16,7 +16,6 @@
 package io.moderne.transposeCapitalization;
 
 
-import io.moderne.ai.table.LanguageDistribution;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
@@ -24,16 +23,10 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.JavadocVisitor;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.Javadoc;
 import org.openrewrite.java.tree.Space;
 import org.openrewrite.java.tree.TextComment;
-import org.openrewrite.marker.SearchResult;
 
 import java.util.Random;
-
-import static org.openrewrite.Tree.randomId;
 
 @Value
 @EqualsAndHashCode(callSuper = false)
@@ -51,15 +44,12 @@ public class SpongeBobCase extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-
-
         return new JavaIsoVisitor<ExecutionContext>() {
-
+            private final Random random = new Random(01042024);
 
             // Function to convert text to SpongeBob case with slight randomness
-                private String toSpongeBobCase(String input) {
+            private String toSpongeBobCase(String input) {
                 StringBuilder sb = new StringBuilder(input.length());
-                Random random = new Random(01042024);
                 boolean toUpperCase = random.nextBoolean(); // Initial choice, randomly upper or lower case
 
                 for (char c : input.toCharArray()) {
@@ -75,14 +65,13 @@ public class SpongeBobCase extends Recipe {
 
                 return sb.toString();
             }
+
             @Override
             public Space visitSpace(Space space, Space.Location loc, ExecutionContext ctx) {
                 return space.withComments(ListUtils.map(space.getComments(), comment -> {
                     if (comment instanceof TextComment) {
                         TextComment tc = (TextComment) comment;
-                        String commentText = tc.getText();
-                        String SpongeBobComment = toSpongeBobCase(commentText);
-                        return tc.withText(SpongeBobComment);
+                        return tc.withText(toSpongeBobCase(tc.getText()));
                     }
                     return comment;
                 }));

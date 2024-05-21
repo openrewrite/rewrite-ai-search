@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 the original author or authors.
+ * Copyright 2024 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,16 +15,13 @@
  */
 package io.moderne.transposeCapitalization;
 
-import io.moderne.transposeCapitalization.SpongeBobCase;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.DocumentExample;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-@DisabledIfEnvironmentVariable(named = "CI", matches = "true")
 class SpongeBobCaseTest implements RewriteTest {
 
     @Override
@@ -35,8 +32,8 @@ class SpongeBobCaseTest implements RewriteTest {
     @DocumentExample
     @Test
     void unirest() {
+        //language=java
         rewriteRun(
-          spec ->
           java(
             """
               class HelloWorld { // Wow great class name
@@ -44,18 +41,15 @@ class SpongeBobCaseTest implements RewriteTest {
                        System.out.println("Hello World"); // this prints out hello world
                   }
               }
-              """
-          ),
-          java(
+              """,
             """
               class HelloWorld { // WoW GrEaT clAsS nAME
                   void helloWorld() {
-                       System.out.println("Hello World"); // ThIS pRiNts OuT hELLo WoRLd
+                       System.out.println("Hello World"); // ThIS pRiNtS oUT hElLo WoRLd
                   }
               }
               """
           )
         );
     }
-
 }
