@@ -15,8 +15,6 @@
  */
 package io.moderne.ai;
 
-import io.moderne.ai.LanguageDetectorModelClient;
-import io.moderne.ai.SpellCheckerClient;
 import lombok.EqualsAndHashCode;
 import lombok.Value;
 import org.openrewrite.ExecutionContext;
@@ -25,7 +23,9 @@ import org.openrewrite.TreeVisitor;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.JavadocVisitor;
-import org.openrewrite.java.tree.*;
+import org.openrewrite.java.tree.Javadoc;
+import org.openrewrite.java.tree.Space;
+import org.openrewrite.java.tree.TextComment;
 
 @Value
 @EqualsAndHashCode(callSuper = false)

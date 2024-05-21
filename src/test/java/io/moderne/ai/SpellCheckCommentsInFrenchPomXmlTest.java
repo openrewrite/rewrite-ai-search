@@ -15,7 +15,6 @@
  */
 package io.moderne.ai;
 
-import io.moderne.ai.SpellCheckCommentsInFrenchPomXml;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable;
 import org.openrewrite.DocumentExample;
