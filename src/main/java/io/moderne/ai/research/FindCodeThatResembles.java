@@ -227,13 +227,15 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 // Populate data table for debugging model's accuracy
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                codeSearchTable.insertRow(ctx, new CodeSearch.Row(
-                        source,
-                        method.printTrimmed(getCursor()),
-                        resembles,
-                        resultEmbeddingModels,
-                        calledGenerativeModel ? ( result ? 1 : -1) : 0
-                ));
+                if (result) {
+                    codeSearchTable.insertRow(ctx, new CodeSearch.Row(
+                            source,
+                            method.printTrimmed(getCursor()),
+                            resembles,
+                            resultEmbeddingModels,
+                            calledGenerativeModel ? ( result ? 1 : -1) : 0
+                    ));
+                }
 
                 return result ?
                         SearchResult.found(method) :
