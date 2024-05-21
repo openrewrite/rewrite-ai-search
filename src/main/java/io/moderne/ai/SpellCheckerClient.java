@@ -61,7 +61,7 @@ public class SpellCheckerClient {
         }
     }
 
-    public static synchronized SpellCheckerClient getInstance()  {
+    public static synchronized SpellCheckerClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new SpellCheckerClient();
             if (INSTANCE.checkForUpRequest() != 200) {
@@ -121,8 +121,7 @@ public class SpellCheckerClient {
     }
 
 
-
-    public String getCommentGradio(String text)  {
+    public String getCommentGradio(String text) {
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
         HttpSender.Response raw = null;
@@ -130,7 +129,7 @@ public class SpellCheckerClient {
         try {
             raw = http
                     .post("http://127.0.0.1:7866/run/predict")
-                    .withContent("application/json" ,
+                    .withContent("application/json",
                             mapper.writeValueAsBytes(new SpellCheckerClient.GradioRequest(new String[]{text})))
                     .send();
         } catch (JsonProcessingException e) {
@@ -159,6 +158,7 @@ public class SpellCheckerClient {
     @Value
     private static class GradioResponse {
         String[] data;
+
         public String getSpellCheck() {
             return data[0];
         }

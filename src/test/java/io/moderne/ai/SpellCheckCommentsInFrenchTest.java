@@ -90,12 +90,12 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
               }
               """,
             """
-             class Test {
-                 void test() {
-                     // c'est une valeur simplifié
-                 }
-             }
-             """
+              class Test {
+                  void test() {
+                      // c'est une valeur simplifié
+                  }
+              }
+              """
           )
         );
     }
@@ -114,30 +114,31 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
               }
               """,
             """
-             class Test {
-                 void test() {
-                     // Gérer la variable
-                 }
-             }
-             """
+              class Test {
+                  void test() {
+                      // Gérer la variable
+                  }
+              }
+              """
           )
         );
     }
-        @Test
-        void questionMarkAlone() {
-            rewriteRun(
-              spec -> spec.parser(JavaParser.fromJavaVersion()),
-              //language=java
-              java(
-                """
-                  class Test {
-                      void test() {
-                          // C'est quoi ça ? C'est quoi?
-                          // C'est quoi ça ?
-                      }
+
+    @Test
+    void questionMarkAlone() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion()),
+          //language=java
+          java(
+            """
+              class Test {
+                  void test() {
+                      // C'est quoi ça ? C'est quoi?
+                      // C'est quoi ça ?
                   }
-                  """)
-            );
+              }
+              """)
+        );
     }
 
     @Test
@@ -164,7 +165,7 @@ class SpellCheckCommentsInFrenchTest implements RewriteTest {
                   }
               }
               """
-            )
+          )
         );
     }
 

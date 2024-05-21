@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 package io.moderne.ai;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -76,7 +77,7 @@ public class AgentGenerativeModelClient {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
             File f = new File(pathToLLama + "/main");
-            if(!(f.exists() && !f.isDirectory()) ) {
+            if (!(f.exists() && !f.isDirectory())) {
                 //Build llama.cpp
                 StringWriter sw = new StringWriter();
                 PrintWriter procOut = new PrintWriter(sw);
@@ -106,12 +107,13 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port }));
+                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port}));
 
-                    EXECUTOR_SERVICE.submit(() -> {new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
-                            .forEach(procOut::println);
-                    new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
-                            .forEach(procOut::println);
+                    EXECUTOR_SERVICE.submit(() -> {
+                        new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
+                                .forEach(procOut::println);
+                        new BufferedReader(new InputStreamReader(proc_server.getErrorStream())).lines()
+                                .forEach(procOut::println);
                     });
 
                     if (!INSTANCE.checkForUp()) {
@@ -130,12 +132,13 @@ public class AgentGenerativeModelClient {
 
     private int checkForUpRequest() {
         try {
-            HttpResponse<String> response = Unirest.head("http://127.0.0.1:"+port).asString();
+            HttpResponse<String> response = Unirest.head("http://127.0.0.1:" + port).asString();
             return response.getStatus();
         } catch (UnirestException e) {
             return 523;
         }
     }
+
     private boolean checkForUp() {
         for (int i = 0; i < 60; i++) {
             try {
@@ -152,7 +155,7 @@ public class AgentGenerativeModelClient {
 
     public static void populateMethodsToSample(String pathToCenters) {
         HashMap<String, String> tempMethodsToSample = new HashMap<>();
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToCenters))){
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToCenters))) {
             String line;
             String source;
             String methodCall;
@@ -183,11 +186,11 @@ public class AgentGenerativeModelClient {
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
-            String text = "[INST]" + promptContent + code + "```\n[/INST]1." ;
+            String text = "[INST]" + promptContent + code + "```\n[/INST]1.";
             HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
             HttpSender.Response raw;
 
-            HashMap <String, Object> input = new HashMap<>();
+            HashMap<String, Object> input = new HashMap<>();
             input.put("stream", false);
             input.put("prompt", text);
             input.put("temperature", 0.5);
@@ -196,7 +199,7 @@ public class AgentGenerativeModelClient {
             try {
                 raw = http
                         .post("http://127.0.0.1:" + port + "/completion")
-                        .withContent("application/json" ,
+                        .withContent("application/json",
                                 mapper.writeValueAsBytes(input)).send();
             } catch (JsonProcessingException e) {
                 throw new RuntimeException(e);
@@ -254,7 +257,7 @@ public class AgentGenerativeModelClient {
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
         HttpSender.Response raw;
 
-        HashMap <String, Object> input = new HashMap<>();
+        HashMap<String, Object> input = new HashMap<>();
         input.put("stream", false);
         input.put("prompt", promptContent);
         input.put("temperature", 0.0);
@@ -265,7 +268,7 @@ public class AgentGenerativeModelClient {
         try {
             raw = http
                     .post("http://127.0.0.1:" + port + "/completion")
-                    .withContent("application/json" ,
+                    .withContent("application/json",
                             mapper.writeValueAsBytes(input)).send();
 
         } catch (JsonProcessingException e) {
@@ -290,9 +293,11 @@ public class AgentGenerativeModelClient {
         return (s.contains("Yes") || s.contains("yes"));
 
     }
+
     @Value
     private static class LlamaResponse {
         String content;
+
         public String getResponse() {
             return content;
         }
@@ -315,7 +320,7 @@ public class AgentGenerativeModelClient {
         public boolean isRelated(double threshold) {
             for (CompletionProbability cp : completionProbabilities) {
                 if (cp.getContent().equals(" Yes")) {
-                    return cp.getProbs().get(0).getProb()>=threshold;
+                    return cp.getProbs().get(0).getProb() >= threshold;
                 }
             }
             return false;

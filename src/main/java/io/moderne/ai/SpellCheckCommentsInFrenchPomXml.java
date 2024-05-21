@@ -43,9 +43,8 @@ public class SpellCheckCommentsInFrenchPomXml extends Recipe {
             @Override
             public Xml.Comment visitComment(Xml.Comment comment, ExecutionContext ctx) {
                 String commentText = comment.getText();
-                if (!commentText.isEmpty() && LanguageDetectorModelClient.getInstance()
-                        .getLanguage(commentText).getLanguage().equals("fr")
-                ) {
+                if (!commentText.isEmpty() && "fr".equals(LanguageDetectorModelClient.getInstance()
+                        .getLanguage(commentText).getLanguage())) {
                     String fixedComment = SpellCheckerClient.getInstance().getCommentGradio(commentText);
                     if (!fixedComment.equals(commentText)) {
                         return comment.withText(fixedComment);

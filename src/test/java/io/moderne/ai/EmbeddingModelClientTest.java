@@ -26,7 +26,7 @@ class EmbeddingModelClientTest {
     @Test
     void start() {
         EmbeddingModelClient client = EmbeddingModelClient.getInstance();
-        assertThat(client.getEmbedding("test").length>0);
+        assertThat(client.getEmbedding("test").length > 0);
         String a = "";
     }
 }

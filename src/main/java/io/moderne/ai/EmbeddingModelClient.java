@@ -68,11 +68,11 @@ public class EmbeddingModelClient {
         }
     }
 
-    public static synchronized EmbeddingModelClient getInstance()  {
+    public static synchronized EmbeddingModelClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new EmbeddingModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+                String cmd = "/usr/bin/python3 'import gradio\ngradio.'";
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
@@ -168,10 +168,10 @@ public class EmbeddingModelClient {
             float diff = v1[i] - v2[i];
             sumOfSquaredDifferences += diff * diff;
         }
-        return 1-Math.sqrt(sumOfSquaredDifferences);
+        return 1 - Math.sqrt(sumOfSquaredDifferences);
     }
 
-    public float[] getEmbedding(String text)  {
+    public float[] getEmbedding(String text) {
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
         HttpSender.Response raw = null;
@@ -179,7 +179,7 @@ public class EmbeddingModelClient {
         try {
             raw = http
                     .post("http://127.0.0.1:7860/run/predict")
-                    .withContent("application/json" , mapper.writeValueAsBytes(new EmbeddingModelClient.GradioRequest(text)))
+                    .withContent("application/json", mapper.writeValueAsBytes(new EmbeddingModelClient.GradioRequest(text)))
                     .send();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);

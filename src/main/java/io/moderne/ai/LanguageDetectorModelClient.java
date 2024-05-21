@@ -46,7 +46,7 @@ public class LanguageDetectorModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     private static final Path MODELS_DIR = Paths.get(System.getProperty("user.home") + "/.moderne/models");
 
-    private ObjectMapper mapper = JsonMapper.builder()
+    private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
             .registerModule(new ParameterNamesModule())
@@ -68,11 +68,11 @@ public class LanguageDetectorModelClient {
         }
     }
 
-    public static synchronized LanguageDetectorModelClient getInstance()  {
+    public static synchronized LanguageDetectorModelClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new LanguageDetectorModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+                String cmd = "/usr/bin/python3 'import gradio\ngradio.'";
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
@@ -153,7 +153,7 @@ public class LanguageDetectorModelClient {
     }
 
 
-    public String getLanguageGradio(String text)  {
+    public String getLanguageGradio(String text) {
 
 
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(30));
@@ -162,7 +162,7 @@ public class LanguageDetectorModelClient {
         try {
             raw = http
                     .post("http://127.0.0.1:7861/run/predict")
-                    .withContent("application/json" ,
+                    .withContent("application/json",
                             mapper.writeValueAsBytes(new LanguageDetectorModelClient.GradioRequest(new String[]{text})))
                     .send();
         } catch (JsonProcessingException e) {
@@ -191,6 +191,7 @@ public class LanguageDetectorModelClient {
     @Value
     private static class GradioResponse {
         String[] data;
+
         public String getLanguage() {
             return data[0];
         }

@@ -34,23 +34,23 @@ class ListAllMethodsUsedTest implements RewriteTest {
     @Test
     void listMethods() {
         rewriteRun(
-          spec -> spec.dataTable(MethodInUse.Row.class,
-            methods -> assertThat(methods).hasSize(2)
-              .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("println"))
-              .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("method1"))),
-          //language=java
-          java(
-            """
-              class A {
-                  void method1(){
-                      System.out.println("Hello");
-                  }
-                  void method2(){
-                      method1();
-                  }
-              }
-              """
-          )
+                spec -> spec.dataTable(MethodInUse.Row.class,
+                        methods -> assertThat(methods).hasSize(2)
+                                .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("println"))
+                                .anySatisfy(row -> assertThat(row.getMethodName()).isEqualTo("method1"))),
+                //language=java
+                java(
+                        """
+                                class A {
+                                    void method1(){
+                                        System.out.println("Hello");
+                                    }
+                                    void method2(){
+                                        method1();
+                                    }
+                                }
+                                """
+                )
         );
     }
 }

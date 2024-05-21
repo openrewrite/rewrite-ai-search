@@ -26,29 +26,29 @@ class GetCodeEmbeddingTest implements RewriteTest {
 
     @Test
     void methods() {
-        rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("methods")),
+        rewriteRun(spec -> spec.recipe(new GetCodeEmbedding("methods")),
           java(
-                """
-                public class Foo {
-                    public void hello(){
-                        System.out.println("hello");
-                    }
-                }
-                """)
+            """
+              public class Foo {
+                  public void hello(){
+                      System.out.println("hello");
+                  }
+              }
+              """)
         );
     }
 
     @Test
     void classes() {
-        rewriteRun( spec -> spec.recipe(new GetCodeEmbedding("classes")),
+        rewriteRun(spec -> spec.recipe(new GetCodeEmbedding("classes")),
           java(
-                """
-                public class Foo {
-                    public void hello(){
-                        System.out.println("hello");
-                    }
-                }
-                """)
+            """
+              public class Foo {
+                  public void hello(){
+                      System.out.println("hello");
+                  }
+              }
+              """)
         );
     }
 }

@@ -55,11 +55,11 @@ public class RelatedModelClient {
         }
     }
 
-    public static synchronized RelatedModelClient getInstance()  {
+    public static synchronized RelatedModelClient getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new RelatedModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = String.format("/usr/bin/python3 'import gradio\ngradio.'", MODELS_DIR);
+                String cmd = "/usr/bin/python3 'import gradio\ngradio.'";
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {

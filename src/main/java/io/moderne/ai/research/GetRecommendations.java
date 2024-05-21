@@ -76,6 +76,7 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
         List<Method> methods = new ArrayList<>();
         List<float[]> embeddings = new ArrayList<>();
 
+        @Nullable
         int[] centers;
 
         public int[] getCenters(int numberOfCenters) {
@@ -139,8 +140,8 @@ public class GetRecommendations extends ScanningRecipe<GetRecommendations.Accumu
                 } else {
                     for (Method methodToSample : acc.getMethodsToSample(numberOfCenters)) {
                         if (methodToSample.file.equals(source) &&
-                                methodToSample.name.equals(md.getSimpleName()) &&
-                                methodToSample.method.equals(md.printTrimmed(getCursor()))) {
+                            methodToSample.name.equals(md.getSimpleName()) &&
+                            methodToSample.method.equals(md.printTrimmed(getCursor()))) {
                             isMethodToSample = true;
                             break;
                         }

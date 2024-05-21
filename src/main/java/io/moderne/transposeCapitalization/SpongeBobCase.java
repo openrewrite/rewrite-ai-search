@@ -76,8 +76,6 @@ public class SpongeBobCase extends Recipe {
                     return comment;
                 }));
             }
-
         };
     }
-
 }

@@ -40,37 +40,37 @@ class SpellCheckCommentsInFrenchPomXmlTest implements RewriteTest {
           ),
           pomXml(
             """
-             <project>
-               <modelVersion>4.0.0</modelVersion>
-               <groupId>com.mycompany.app</groupId>
-               <artifactId>my-app</artifactId>
-               <version>1</version>
-               <dependencies>
-                 <dependency>
-                   <!-- c'est une d?pendance incorpor? -->
-                   <groupId>com.google.guava</groupId>
-                   <artifactId>guava</artifactId>
-                   <version>29.0-jre</version>
-                 </dependency>
-               </dependencies>
-             </project>
-             """,
-             """
-             <project>
-               <modelVersion>4.0.0</modelVersion>
-               <groupId>com.mycompany.app</groupId>
-               <artifactId>my-app</artifactId>
-               <version>1</version>
-               <dependencies>
-                 <dependency>
-                   <!-- c'est une dépendance incorporé -->
-                   <groupId>com.google.guava</groupId>
-                   <artifactId>guava</artifactId>
-                   <version>29.0-jre</version>
-                 </dependency>
-               </dependencies>
-             </project>
-             """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.mycompany.app</groupId>
+                <artifactId>my-app</artifactId>
+                <version>1</version>
+                <dependencies>
+                  <dependency>
+                    <!-- c'est une d?pendance incorpor? -->
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                    <version>29.0-jre</version>
+                  </dependency>
+                </dependencies>
+              </project>
+              """,
+            """
+              <project>
+                <modelVersion>4.0.0</modelVersion>
+                <groupId>com.mycompany.app</groupId>
+                <artifactId>my-app</artifactId>
+                <version>1</version>
+                <dependencies>
+                  <dependency>
+                    <!-- c'est une dépendance incorporé -->
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                    <version>29.0-jre</version>
+                  </dependency>
+                </dependencies>
+              </project>
+              """
           )
         );
     }

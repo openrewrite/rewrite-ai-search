@@ -45,13 +45,13 @@ public class CodeSearch extends DataTable<CodeSearch.Row> {
 
         @Column(displayName = "Result of first models",
                 description = "First two embeddings models result," +
-                        " where -1 means negative match, 0 means unsure, and 1 means positive match.")
+                              " where -1 means negative match, 0 means unsure, and 1 means positive match.")
         int resultEmbedding;
 
         @Column(displayName = "Result of second model",
                 description = "Second generative model's result," +
-                        " where -1 means negative match and 1 means positive match. " +
-                        "If the model was never queried, then the result is 0.")
+                              " where -1 means negative match and 1 means positive match. " +
+                              "If the model was never queried, then the result is 0.")
         int resultGenerative;
     }
 }

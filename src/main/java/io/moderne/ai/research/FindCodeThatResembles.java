@@ -121,8 +121,6 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
 
         return new JavaIsoVisitor<ExecutionContext>() {
-
-
             private String extractTypeName(String fullyQualifiedTypeName) {
                 return fullyQualifiedTypeName.replace("<.*>", "")
                         .substring(fullyQualifiedTypeName.lastIndexOf('.') + 1);
@@ -133,20 +131,20 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 cu.getTypesInUse().getUsedMethods().forEach(type -> {
                     String methodSignature = extractTypeName(Optional.ofNullable(type.getReturnType())
-                                    .map(Object::toString).orElse("")) + " " + type.getName() ;
+                            .map(Object::toString).orElse("")) + " " + type.getName();
 
                     String[] parameters = new String[type.getParameterTypes().size()];
                     for (int i = 0; i < type.getParameterTypes().size(); i++) {
                         String typeName = extractTypeName(type.getParameterTypes().get(i).toString());
                         String paramName = type.getParameterNames().get(i);
-                        parameters[i] = typeName + " " + paramName ;
+                        parameters[i] = typeName + " " + paramName;
                     }
 
-                    methodSignature +=  "(" + String.join(", ", parameters) + ")";
+                    methodSignature += "(" + String.join(", ", parameters) + ")";
 
                     String methodPattern =
                             Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
-                                                   .orElse("") + " " + type.getName() + "(..)";
+                                    .orElse("") + " " + type.getName() + "(..)";
 
                     acc.add(methodSignature, methodPattern, resembles);
                 });
@@ -170,8 +168,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
             @Override
             public boolean isAcceptable(SourceFile sourceFile, ExecutionContext ctx) {
-                boolean acceptable = sourceFile instanceof J.CompilationUnit;
-                return acceptable;
+                return sourceFile instanceof J.CompilationUnit;
             }
 
             @Override
@@ -236,7 +233,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                             method.printTrimmed(getCursor()),
                             resembles,
                             resultEmbeddingModels,
-                            calledGenerativeModel ? ( result ? 1 : -1) : 0
+                            calledGenerativeModel ? (result ? 1 : -1) : 0
                     ));
                 }
 

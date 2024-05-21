@@ -27,7 +27,6 @@ import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.java.tree.JavaSourceFile;
 
-
 @Value
 @EqualsAndHashCode(callSuper = false)
 public class GetCodeEmbedding extends Recipe {
@@ -54,7 +53,7 @@ public class GetCodeEmbedding extends Recipe {
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor() {
-       if ("methods".equals(codeSnippetType)){
+        if ("methods".equals(codeSnippetType)) {
             return new JavaIsoVisitor<ExecutionContext>() {
                 @Override
                 public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
@@ -62,23 +61,22 @@ public class GetCodeEmbedding extends Recipe {
                     // Get embedding
                     JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                     float[] embedding = EmbeddingModelClient.getInstance().getEmbedding(md.printTrimmed(getCursor()));
-                    String s = javaSourceFile.getSourcePath().toString();
                     embeddings.insertRow(ctx, new Embeddings.Row(javaSourceFile.getSourcePath().toString(), md.getSimpleName(), embedding));
                     return md;
                 }
             };
-        } else{
-           return new JavaIsoVisitor<ExecutionContext>() {
-               @Override
-               public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration clazz, ExecutionContext ctx) {
-                   J.ClassDeclaration cd = getCursor().firstEnclosing(J.ClassDeclaration.class);
-                   // Get embedding
-                   JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
-                   float[] embedding = EmbeddingModelClient.getInstance().getEmbedding(cd.printTrimmed(getCursor()));
-                   embeddings.insertRow(ctx, new Embeddings.Row(javaSourceFile.getSourcePath().toString(), cd.getSimpleName(), embedding));
-                   return cd;
-               }
-           };
+        } else {
+            return new JavaIsoVisitor<ExecutionContext>() {
+                @Override
+                public J.ClassDeclaration visitClassDeclaration(J.ClassDeclaration clazz, ExecutionContext ctx) {
+                    J.ClassDeclaration cd = getCursor().firstEnclosing(J.ClassDeclaration.class);
+                    // Get embedding
+                    JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
+                    float[] embedding = EmbeddingModelClient.getInstance().getEmbedding(cd.printTrimmed(getCursor()));
+                    embeddings.insertRow(ctx, new Embeddings.Row(javaSourceFile.getSourcePath().toString(), cd.getSimpleName(), embedding));
+                    return cd;
+                }
+            };
         }
 
 
