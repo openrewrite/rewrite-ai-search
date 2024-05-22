@@ -207,17 +207,8 @@ thresholds = {"HF": [1-0.3815, 1-0.1624], "Distance": [1-0.84894, 1-0.84572]}
 distance_classifier = Classifier(thresholds["Distance"][0], thresholds["Distance"][1], StaticModel("BAAI/bge-large-en-v1.5"), lower_score_indicates_true=True)
 mini_classifier = Classifier(thresholds["HF"][0], thresholds["HF"][1], HF("SmartComponents/bge-micro-v2"), lower_score_indicates_true=True)
 chained_classifier = ChainedClassifier([mini_classifier, distance_classifier])
-def get_is_related(query, input_string, new_thresholds=None):
-    global thresholds, distance_classifier, mini_classifier, chained_classifier
-    if new_thresholds:
-        if new_thresholds["HF"] != thresholds["HF"]:
-            thresholds["HF"] = new_thresholds["HF"]
-            mini_classifier = Classifier(thresholds["HF"][0], thresholds["HF"][1], HF("SmartComponents/bge-micro-v2"), lower_score_indicates_true=True)
-        if new_thresholds["Distance"] != thresholds["Distance"]:
-            thresholds["Distance"] = new_thresholds["Distance"]
-            distance_classifier = Classifier(thresholds["Distance"][0], thresholds["Distance"][1], StaticModel("BAAI/bge-large-en-v1.5"), lower_score_indicates_true=True)
-        chained_classifier = ChainedClassifier([mini_classifier, distance_classifier])
+def get_is_related(query, input_string):
     result = chained_classifier.classify(query, input_string)
     return result.to_int()
 
-gr.Interface(fn=get_is_related, inputs=["text", "text", "json"], outputs="text").launch(server_port=7871)
+gr.Interface(fn=get_is_related, inputs=["text", "text"], outputs="text").launch(server_port=7871)
