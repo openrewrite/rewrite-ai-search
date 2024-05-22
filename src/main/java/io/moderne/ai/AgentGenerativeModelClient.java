@@ -172,7 +172,7 @@ public class AgentGenerativeModelClient {
                 promptContent.append(line).append("\n");
             }
             String text = "[INST]" + promptContent + code + "```\n[/INST]1.";
-            HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
+            HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(90));
             HttpSender.Response raw;
 
             HashMap<String, Object> input = new HashMap<>();
