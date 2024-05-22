@@ -42,6 +42,11 @@ public class RelatedModelClient {
     @Nullable
     private static RelatedModelClient INSTANCE;
 
+    private HashMap<String, Float[]> thresholds = new HashMap<String, Float[]>() {{
+        put("HF", new Float[] {1.0f - 0.3815f, 1.0f - 0.1624f});
+        put("Distance", new Float[] {1.0f - 0.84894f, 1.0f - 0.84572f});
+    }};
+
     private final Map<Related, Integer> relatedCache = Collections.synchronizedMap(new LinkedHashMap<Related, Integer>() {
         @Override
         protected boolean removeEldestEntry(java.util.Map.Entry<Related, Integer> eldest) {
@@ -123,7 +128,7 @@ public class RelatedModelClient {
 
     public Relatedness getRelatedness(String t1, String t2) {
         List<Duration> timings = new ArrayList<>(2);
-        Related related = new Related(t1, t2);
+        Related related = new Related(t1, t2, this.thresholds);
         int b1 = relatedCache.computeIfAbsent(related, timeEmbedding(timings));
         return new Relatedness(b1, timings);
     }
@@ -131,7 +136,7 @@ public class RelatedModelClient {
     private Function<Related, Integer> timeEmbedding(List<Duration> timings) {
         return t -> {
             long start = System.nanoTime();
-            int b = getRelated(t.t1, t.t2);
+            int b = getRelated(t.t1, t.t2, t.thresholds);
             if (timings.isEmpty()) {
                 timings.add(Duration.ofNanos(System.nanoTime() - start));
             }
@@ -139,10 +144,10 @@ public class RelatedModelClient {
         };
     }
 
-    public int getRelated(String s1, String s2) {
+    public int getRelated(String s1, String s2, HashMap<String, Float[]> thresholds) {
         HttpResponse<GradioResponse> response = Unirest.post("http://127.0.0.1:7871/run/predict")
                 .header(HeaderNames.CONTENT_TYPE, "application/json")
-                .body(new GradioRequest(new Object[]{s1, s2}))
+                .body(new GradioRequest(new Object[]{s1, s2, thresholds}))
                 .asObject(GradioResponse.class);
         if (!response.isSuccess()) {
             throw new IllegalStateException("Unable to get if related. HTTP " + response.getStatus());
@@ -178,6 +183,7 @@ public class RelatedModelClient {
     public static class Related {
         String t1;
         String t2;
+        HashMap<String, Float[]> thresholds;
     }
 
 

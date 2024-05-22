@@ -57,21 +57,6 @@ public class AgentGenerativeModelClient {
 
     static String port = "7878";
 
-
-    /*
-    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
-    Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
-    StringWriter sw = new StringWriter();
-    PrintWriter procOut = new PrintWriter(sw);
-    EXECUTOR_SERVICE.submit(() -> {
-        new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
-                .forEach(procOut::println);
-        new BufferedReader(new InputStreamReader(proc.getErrorStream())).lines()
-                .forEach(procOut::println);
-    });
-
-    Nate says there's an inherit io (to maybe if there's a bug in sending the error message, so all the io gets printed to the parent. an option on the process basically)
-     */
     public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
@@ -260,7 +245,6 @@ public class AgentGenerativeModelClient {
         input.put("temperature", 0.0);
         input.put("n_predict", 3);
         input.put("n_probs", 10);
-        //TODO: get probs of responses
 
         try {
             raw = http

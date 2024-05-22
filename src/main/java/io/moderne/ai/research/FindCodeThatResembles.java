@@ -106,7 +106,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             }
             topMethodPatterns = new ArrayList<>(k);
             for (int i = 0; i < k && !methodSignaturesQueue.isEmpty(); i++) {
-                topMethodPatterns.add(new MethodMatcher(methodSignaturesQueue.poll().getMethodPattern(), true));
+                MethodMatcher temp = new MethodMatcher(methodSignaturesQueue.poll().getMethodPattern().replaceAll("<[^>]*>", ""), true);
+                topMethodPatterns.add(temp);
             }
             return topMethodPatterns;
         }
