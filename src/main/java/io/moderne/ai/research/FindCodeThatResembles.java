@@ -218,7 +218,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                         max.set(timing.toNanos());
                     }
                 }
-                int resultEmbeddingModels = related.isRelated();
+                int resultEmbeddingModels = related.isRelated(); // results from two first models -1, 0, 1
                 boolean result;
                 boolean calledGenerativeModel = false;
                 if (resultEmbeddingModels == 0) {
@@ -231,7 +231,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 // Populate data table for debugging model's accuracy
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                if (result) {
+                if (result || calledGenerativeModel) {
                     codeSearchTable.insertRow(ctx, new CodeSearch.Row(
                             source,
                             method.printTrimmed(getCursor()),
