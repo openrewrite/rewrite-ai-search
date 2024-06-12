@@ -84,6 +84,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         int k;
         PriorityQueue<MethodSignatureWithDistance> methodSignaturesQueue = new PriorityQueue<>(Comparator.comparingDouble(MethodSignatureWithDistance::getDistance));
         EmbeddingModelClient embeddingModelClient = EmbeddingModelClient.getInstance();
+
         @NonFinal
         @Nullable
         List<MethodMatcher> topMethodPatterns;

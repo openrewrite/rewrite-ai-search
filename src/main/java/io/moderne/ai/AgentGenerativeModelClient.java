@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 public class AgentGenerativeModelClient {
     @Nullable
     private static AgentGenerativeModelClient INSTANCE;
+
     private static HashMap<String, String> methodsToSample;
 
     private final ObjectMapper mapper = JsonMapper.builder()
