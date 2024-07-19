@@ -220,31 +220,34 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                     }
                 }
                 int resultEmbeddingModels = related.isRelated(); // results from two first models -1, 0, 1
-                boolean result;
                 boolean calledGenerativeModel = false;
+                boolean resultGenerativeModel = false;
                 if (resultEmbeddingModels == 0) {
-                    result = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()), 0.5932);
+                    resultGenerativeModel = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()), 0.5932);
                     calledGenerativeModel = true;
-                } else {
-                    result = resultEmbeddingModels == 1;
                 }
 
                 // Populate data table for debugging model's accuracy
                 JavaSourceFile javaSourceFile = getCursor().firstEnclosing(JavaSourceFile.class);
                 String source = javaSourceFile.getSourcePath().toString();
-                if (result || calledGenerativeModel) {
-                    codeSearchTable.insertRow(ctx, new CodeSearch.Row(
-                            source,
-                            method.printTrimmed(getCursor()),
-                            resembles,
-                            resultEmbeddingModels,
-                            calledGenerativeModel ? (result ? 1 : -1) : 0
-                    ));
-                }
+                codeSearchTable.insertRow(ctx, new CodeSearch.Row(
+                        source,
+                        method.printTrimmed(getCursor()),
+                        resembles,
+                        resultEmbeddingModels,
+                        calledGenerativeModel,
+                        resultGenerativeModel
+                ));
 
-                return result ?
-                        SearchResult.found(method) :
-                        super.visitMethodInvocation(method, ctx);
+                if (calledGenerativeModel){
+                    return resultGenerativeModel ?
+                            SearchResult.found(method) :
+                            super.visitMethodInvocation(method, ctx);
+                } else {
+                    return resultEmbeddingModels == 1 ?
+                            SearchResult.found(method) :
+                            super.visitMethodInvocation(method, ctx);
+                }
             }
         });
     }
