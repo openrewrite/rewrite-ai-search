@@ -77,7 +77,7 @@ public class SpellCheckerClient {
             Files.copy(requireNonNull(SpellCheckerClient.class.getResourceAsStream("/spellcheck_comment_french.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/spellcheck_comment_french.py", MODELS_DIR);
+            String cmd = String.format("python3 %s/spellcheck_comment_french.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
