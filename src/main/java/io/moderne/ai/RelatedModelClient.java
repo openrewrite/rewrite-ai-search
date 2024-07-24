@@ -59,7 +59,7 @@ public class RelatedModelClient {
         if (INSTANCE == null) {
             INSTANCE = new RelatedModelClient();
             if (INSTANCE.checkForUpRequest() != 200) {
-                String cmd = "/usr/bin/python3 'import gradio\ngradio.'";
+                String cmd = "python3 'import gradio\ngradio.'";
                 try {
                     Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
                 } catch (IOException e) {
@@ -78,7 +78,7 @@ public class RelatedModelClient {
             Files.copy(requireNonNull(RelatedModelClient.class.getResourceAsStream("/get_is_related.py")), pyLauncher, StandardCopyOption.REPLACE_EXISTING);
             StringWriter sw = new StringWriter();
             PrintWriter procOut = new PrintWriter(sw);
-            String cmd = String.format("/usr/bin/python3 %s/get_is_related.py", MODELS_DIR);
+            String cmd = String.format("python3 %s/get_is_related.py", MODELS_DIR);
             Process proc = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd});
             EXECUTOR_SERVICE.submit(() -> {
                 new BufferedReader(new InputStreamReader(proc.getInputStream())).lines()
