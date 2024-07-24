@@ -69,7 +69,7 @@ public class AgentGenerativeModelClient {
                 PrintWriter procOut = new PrintWriter(sw);
                 try {
                     Runtime runtime = Runtime.getRuntime();
-                    Process proc_make = runtime.exec(new String[]{"/bin/sh", "-c", "make -C " + pathToLLama});
+                    Process proc_make = runtime.exec(new String[]{"make -C " + pathToLLama});
                     proc_make.waitFor();
                     new BufferedReader(new InputStreamReader(proc_make.getInputStream())).lines()
                             .forEach(procOut::println);
@@ -93,7 +93,7 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port}));
+                            {pathToLLama + "/server -m " + pathToModel + " --port " + port}));
 
                     EXECUTOR_SERVICE.submit(() -> {
                         new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
