@@ -19,6 +19,7 @@ import io.moderne.ai.AgentGenerativeModelClient;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.CodeSearch;
+import io.moderne.ai.table.TopKMethodMatcher;
 import io.moderne.ai.table.EmbeddingPerformance;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             example = "HTTP request with Content-Type application/json")
     String resembles;
 
-    @Option(displayName = "top k methods",
+    @Option(displayName = "Top-K methods",
             description = "Since AI based matching has a higher latency than rules based matching, " +
                           "we do a first pass to find the top k methods using embeddings. " +
                           "To narrow the scope, you can specify the top k methods as method filters.",
@@ -57,8 +58,10 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     int k;
 
     transient CodeSearch codeSearchTable = new CodeSearch(this);
-
+    transient TopKMethodMatcher topKTable = new TopKMethodMatcher(this);
+    static Boolean populateTopKTable = false;
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+
 
     @Override
     public String getDisplayName() {
@@ -95,6 +98,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                     return;
                 }
             }
+
             MethodSignatureWithDistance methodSignatureWithDistance = new MethodSignatureWithDistance(methodSignature,
                     methodPattern,
                     (float) embeddingModelClient.getDistance(resembles, methodSignature));
@@ -114,6 +118,14 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 topMethodPatterns.add(new MethodMatcher(inputString, true));
             }
             return topMethodPatterns;
+        }
+
+        public List<MethodSignatureWithDistance> getMethodSignaturesTopK() {
+            List<MethodSignatureWithDistance> list = new ArrayList<>(k);
+            for (int i = 0; i < k && !methodSignaturesQueue.isEmpty(); i++) {
+                list.add(methodSignaturesQueue.poll());
+            }
+            return list;
         }
     }
 
@@ -198,6 +210,21 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
+                if (!populateTopKTable){
+                    List<MethodSignatureWithDistance> methodMatchers = acc.getMethodSignaturesTopK();
+                    for (MethodSignatureWithDistance methodSignatureWithDistance : methodMatchers) {
+                        topKTable.insertRow(ctx, new TopKMethodMatcher.Row(
+                                methodSignatureWithDistance.getMethodPattern(),
+                                methodSignatureWithDistance.getMethodSignature(),
+                                methodSignatureWithDistance.getDistance(),
+                                resembles
+                        ));
+                    }
+                    populateTopKTable = true;
+
+                }
+
+
                 boolean matches = false;
                 for (MethodMatcher methodMatcher : methodMatchers) {
                     if (methodMatcher.matches(method)) {
@@ -208,6 +235,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
+
 
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()));
