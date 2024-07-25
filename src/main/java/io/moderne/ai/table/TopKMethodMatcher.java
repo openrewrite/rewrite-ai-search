@@ -26,7 +26,7 @@ public class TopKMethodMatcher extends DataTable<TopKMethodMatcher.Row> {
     public TopKMethodMatcher(Recipe recipe) {
         super(recipe,
                 "Top-K Method Matcher",
-                "Searches for method invocations that resemble a natural language query.");
+                "Result from the scanning recipe for top-k method patterns that match the query.");
     }
 
     @Value

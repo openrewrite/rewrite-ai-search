@@ -59,8 +59,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     transient CodeSearch codeSearchTable = new CodeSearch(this);
     transient TopKMethodMatcher topKTable = new TopKMethodMatcher(this);
-    static Boolean populateTopKTable = false;
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+    static Boolean populatedTopKDataTable = false;
 
 
     @Override
@@ -92,6 +92,10 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         @Nullable
         List<MethodMatcher> topMethodPatterns;
 
+        @NonFinal
+        @Nullable
+        List<MethodSignatureWithDistance> topMethodSignatureWithDistances;
+
         public void add(String methodSignature, String methodPattern, String resembles) {
             for (MethodSignatureWithDistance entry : methodSignaturesQueue) {
                 if (entry.methodPattern.equals(methodPattern)) {
@@ -105,27 +109,31 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             methodSignaturesQueue.add(methodSignatureWithDistance);
         }
 
-        public List<MethodMatcher> getMethodMatchersTopK() {
+        public List<MethodSignatureWithDistance> getTopMethodSignatureWithDistances() {
+            return topMethodSignatureWithDistances;
+        }
+
+        public List<MethodMatcher> getTopMethodPatterns() {
+            return topMethodPatterns;
+        }
+
+        public List<MethodMatcher> populateTopK() {
             if (topMethodPatterns != null) {
-                return topMethodPatterns;
+                return null;
             }
+
             topMethodPatterns = new ArrayList<>(k);
+            topMethodSignatureWithDistances = new ArrayList<>(k);
             for (int i = 0; i < k && !methodSignaturesQueue.isEmpty(); i++) {
-                String inputString = methodSignaturesQueue.poll().getMethodPattern();
+                MethodSignatureWithDistance currentMethod = methodSignaturesQueue.poll();
+                String inputString = currentMethod.getMethodPattern();
                 if (!inputString.contains("<constructor>")){
                     inputString = inputString.replaceAll("<[^>]*>", "");
                 }
                 topMethodPatterns.add(new MethodMatcher(inputString, true));
+                topMethodSignatureWithDistances.add(currentMethod);
             }
             return topMethodPatterns;
-        }
-
-        public List<MethodSignatureWithDistance> getMethodSignaturesTopK() {
-            List<MethodSignatureWithDistance> list = new ArrayList<>(k);
-            for (int i = 0; i < k && !methodSignaturesQueue.isEmpty(); i++) {
-                list.add(methodSignaturesQueue.poll());
-            }
-            return list;
         }
     }
 
@@ -173,7 +181,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     @Override
     public TreeVisitor<?, ExecutionContext> getVisitor(Accumulator acc) {
-        List<MethodMatcher> methodMatchers = acc.getMethodMatchersTopK();
+        acc.populateTopK();
+        List<MethodMatcher> methodMatchers = acc.getTopMethodPatterns();
 
         List<TreeVisitor<?, ExecutionContext>> preconditions = new ArrayList<>(methodMatchers.size());
         for (MethodMatcher m : methodMatchers) {
@@ -210,9 +219,9 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
-                if (!populateTopKTable){
-                    List<MethodSignatureWithDistance> methodMatchers = acc.getMethodSignaturesTopK();
-                    for (MethodSignatureWithDistance methodSignatureWithDistance : methodMatchers) {
+                if (!populatedTopKDataTable) {
+                    List<MethodSignatureWithDistance> methodMatchersDistance = acc.getTopMethodSignatureWithDistances();
+                    for (MethodSignatureWithDistance methodSignatureWithDistance : methodMatchersDistance) {
                         topKTable.insertRow(ctx, new TopKMethodMatcher.Row(
                                 methodSignatureWithDistance.getMethodPattern(),
                                 methodSignatureWithDistance.getMethodSignature(),
@@ -220,10 +229,9 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                                 resembles
                         ));
                     }
-                    populateTopKTable = true;
 
+                    populatedTopKDataTable = true;
                 }
-
 
                 boolean matches = false;
                 for (MethodMatcher methodMatcher : methodMatchers) {
@@ -232,6 +240,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                         break;
                     }
                 }
+
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
