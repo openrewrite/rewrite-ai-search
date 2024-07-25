@@ -168,7 +168,7 @@ public class EmbeddingModelClient {
             float diff = v1[i] - v2[i];
             sumOfSquaredDifferences += diff * diff;
         }
-        return 1 - Math.sqrt(sumOfSquaredDifferences);
+        return Math.sqrt(sumOfSquaredDifferences);
     }
 
     public float[] getEmbedding(String text) {
