@@ -31,7 +31,7 @@ class FindCodeThatResemblesTest implements RewriteTest {
     public void defaults(RecipeSpec spec) {
         spec.recipe(new FindCodeThatResembles(
           "HTTP request with Content-Type application/json",
-          10
+          4
         ));
     }
 
