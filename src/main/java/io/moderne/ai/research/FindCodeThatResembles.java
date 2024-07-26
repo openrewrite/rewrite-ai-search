@@ -87,6 +87,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         int k;
         PriorityQueue<MethodSignatureWithDistance> methodSignaturesQueue = new PriorityQueue<>(Comparator.comparingDouble(MethodSignatureWithDistance::getDistance));
         EmbeddingModelClient embeddingModelClient = EmbeddingModelClient.getInstance();
+        private HashSet<String> methodPatternsSet;
 
         @NonFinal
         @Nullable
@@ -97,16 +98,18 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
         List<MethodSignatureWithDistance> topMethodSignatureWithDistances;
 
         public void add(String methodSignature, String methodPattern, String resembles) {
-            for (MethodSignatureWithDistance entry : methodSignaturesQueue) {
-                if (entry.methodPattern.equals(methodPattern)) {
-                    return;
-                }
+            if (methodPatternsSet.contains(methodPattern)) {
+                return;
             }
 
-            MethodSignatureWithDistance methodSignatureWithDistance = new MethodSignatureWithDistance(methodSignature,
+            MethodSignatureWithDistance methodSignatureWithDistance = new MethodSignatureWithDistance(
+                    methodSignature,
                     methodPattern,
-                    (float) embeddingModelClient.getDistance(resembles, methodSignature));
+                    (float) embeddingModelClient.getDistance(resembles, methodSignature)
+            );
+
             methodSignaturesQueue.add(methodSignatureWithDistance);
+            methodPatternsSet.add(methodPattern);
         }
 
         public List<MethodSignatureWithDistance> getTopMethodSignatureWithDistances() {
@@ -233,18 +236,10 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                     populatedTopKDataTable = true;
                 }
 
-                boolean matches = false;
-                for (MethodMatcher methodMatcher : methodMatchers) {
-                    if (methodMatcher.matches(method)) {
-                        matches = true;
-                        break;
-                    }
-                }
-
+                boolean matches = methodMatchers.stream().anyMatch(matcher -> matcher.matches(method));
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
-
 
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()));
