@@ -156,8 +156,15 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
         return new JavaIsoVisitor<ExecutionContext>() {
             private String extractTypeName(String fullyQualifiedTypeName) {
-                return fullyQualifiedTypeName.replace("<.*>", "")
-                        .substring(fullyQualifiedTypeName.lastIndexOf('.') + 1);
+                // Split around the '<' and '>' while keeping them for re-insertion
+                String[] parts = fullyQualifiedTypeName.split("(<|>)");
+                String outer = parts[0];
+                String inner = parts.length > 1 ? parts[1] : "";
+
+                outer = outer.substring(outer.lastIndexOf('.') + 1);
+                inner = inner.substring(inner.lastIndexOf('.') + 1);
+
+                return inner.isEmpty() ? outer : outer + "<" + inner + ">";
             }
 
             @SuppressWarnings("OptionalOfNullableMisuse")
