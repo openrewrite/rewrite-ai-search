@@ -44,8 +44,6 @@ public class AgentGenerativeModelClient {
     @Nullable
     private static AgentGenerativeModelClient INSTANCE;
 
-    private static HashMap<String, String> methodsToSample;
-
     private final ObjectMapper mapper = JsonMapper.builder()
             .constructorDetector(ConstructorDetector.USE_PROPERTIES_BASED)
             .build()
@@ -54,15 +52,14 @@ public class AgentGenerativeModelClient {
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
     static String pathToModel = "/MODELS/codellama.gguf";
     static String pathToLLama = "/app/llama.cpp";
-
+    static String maxContextLength = "1024";
     static String pathToFiles = "/app/";
-
     static String port = "7878";
 
     public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
-            File f = new File(pathToLLama + "/main");
+            File f = new File(pathToLLama + "/server");
             if (!(f.exists() && !f.isDirectory())) {
                 //Build llama.cpp
                 StringWriter sw = new StringWriter();
@@ -93,7 +90,7 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port }));
+                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port + " -c " + maxContextLength }));
 
                     EXECUTOR_SERVICE.submit(() -> {
                         new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
@@ -137,29 +134,6 @@ public class AgentGenerativeModelClient {
             }
         }
         return false;
-    }
-
-    public static void populateMethodsToSample(String pathToCenters) {
-        HashMap<String, String> tempMethodsToSample = new HashMap<>();
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(pathToCenters))) {
-            String line;
-            String source;
-            String methodCall;
-            while ((line = bufferedReader.readLine()) != null) {
-                source = line.split(" ")[0];
-                methodCall = line.split(" ")[1];
-                tempMethodsToSample.put(source, methodCall);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Couldn't read which methods to sample. " + e);
-        }
-
-        methodsToSample = tempMethodsToSample;
-
-    }
-
-    public static HashMap<String, String> getMethodsToSample() {
-        return methodsToSample;
     }
 
     public ArrayList<String> getRecommendations(String code) {
@@ -273,11 +247,6 @@ public class AgentGenerativeModelClient {
         return relatedResponse;
     }
 
-    private boolean parseRelated(String s) {
-        // check if Yes or yes in output, return true if it does
-        return (s.contains("Yes") || s.contains("yes"));
-
-    }
 
     @Value
     private static class LlamaResponse {
