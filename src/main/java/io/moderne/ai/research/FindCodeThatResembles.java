@@ -60,7 +60,6 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     transient CodeSearch codeSearchTable = new CodeSearch(this);
     transient TopKMethodMatcher topKTable = new TopKMethodMatcher(this);
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
-    static Boolean populatedTopKDataTable = false;
 
 
     @Override
@@ -84,7 +83,10 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     @Value
     @RequiredArgsConstructor
     public static class Accumulator {
-        int k;
+        @NonFinal
+        @Nullable
+        Boolean populatedTopKDataTable = false;
+        final int k;
         PriorityQueue<MethodSignatureWithDistance> methodSignaturesQueue = new PriorityQueue<>(Comparator.comparingDouble(MethodSignatureWithDistance::getDistance));
         EmbeddingModelClient embeddingModelClient = EmbeddingModelClient.getInstance();
         private HashSet<String> methodPatternsSet = new HashSet<>();
@@ -138,6 +140,10 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             }
             return topMethodPatterns;
         }
+
+        public void setPopulatedTopKDataTable(boolean b) {
+            this.populatedTopKDataTable = b;
+        }
     }
 
     @Override
@@ -158,21 +164,28 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
                 cu.getTypesInUse().getUsedMethods().forEach(type -> {
-                    String methodSignature = extractTypeName(Optional.ofNullable(type.getReturnType())
-                            .map(Object::toString).orElse("")) + " " + type.getName();
+                    StringBuilder methodSignatureBuilder = new StringBuilder();
+                    StringBuilder methodPatternBuilder = new StringBuilder();
 
-                    String[] parameters = new String[type.getParameterTypes().size()];
+                    String methodSignature = methodSignatureBuilder.append(extractTypeName(Optional.ofNullable(type.getReturnType())
+                            .map(Object::toString).orElse(""))).append(" ").append(type.getName()).toString();
+
+                    methodSignatureBuilder.setLength(0); // Clear the builder for reuse
+
                     for (int i = 0; i < type.getParameterTypes().size(); i++) {
                         String typeName = extractTypeName(type.getParameterTypes().get(i).toString());
                         String paramName = type.getParameterNames().get(i);
-                        parameters[i] = typeName + " " + paramName;
+                        methodSignatureBuilder.append(typeName).append(" ").append(paramName);
+                        if (i < type.getParameterTypes().size() - 1) {
+                            methodSignatureBuilder.append(", ");
+                        }
                     }
 
-                    methodSignature += "(" + String.join(", ", parameters) + ")";
+                    methodSignature += "(" + methodSignatureBuilder.toString() + ")";
 
-                    String methodPattern =
-                            Optional.ofNullable(type.getDeclaringType()).map(Object::toString)
-                                    .orElse("") + " " + type.getName() + "(..)";
+                    methodPatternBuilder.setLength(0); // Clear the builder for reuse
+                    String methodPattern = methodPatternBuilder.append(Optional.ofNullable(type.getDeclaringType())
+                            .map(Object::toString).orElse("")).append(" ").append(type.getName()).append("(..)").toString();
 
                     acc.add(methodSignature, methodPattern, resembles);
                 });
@@ -222,7 +235,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             @Override
             public J.MethodInvocation visitMethodInvocation(J.MethodInvocation method, ExecutionContext ctx) {
 
-                if (!populatedTopKDataTable) {
+                if (!acc.populatedTopKDataTable) {
                     List<MethodSignatureWithDistance> methodMatchersDistance = acc.getTopMethodSignatureWithDistances();
                     for (MethodSignatureWithDistance methodSignatureWithDistance : methodMatchersDistance) {
                         topKTable.insertRow(ctx, new TopKMethodMatcher.Row(
@@ -232,8 +245,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                                 resembles
                         ));
                     }
-
-                    populatedTopKDataTable = true;
+                    acc.setPopulatedTopKDataTable(true);
                 }
 
                 boolean matches = methodMatchers.stream().anyMatch(matcher -> matcher.matches(method));
