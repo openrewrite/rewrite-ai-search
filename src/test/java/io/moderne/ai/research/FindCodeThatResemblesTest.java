@@ -151,6 +151,9 @@ class FindCodeThatResemblesTest implements RewriteTest {
           java(
             """
               import kong.unirest.*;
+              import java.util.ArrayList;
+              import java.util.List;
+              
               class Test {
                   void test() {
                     HttpRequestWithBody request = Unirest.post("https://httpbin.org/post")
@@ -164,6 +167,14 @@ class FindCodeThatResemblesTest implements RewriteTest {
                     string.repeat(10);
                     string.replace(" ", "_");
                     string.isEmpty();
+                    string.repeat(10);
+                    string.repeat(1);
+                    
+                    List<String> listStrings = new ArrayList<>(2);
+                    listStrings.add("additional unrelated string");
+        
+                    List<Integer> listIntegers = new ArrayList<>(2);
+                    listIntegers.add(42);
                     
                     String stringHttpBody = returnHttpBody(string);
                     
@@ -176,6 +187,9 @@ class FindCodeThatResemblesTest implements RewriteTest {
               """,
             """
               import kong.unirest.*;
+              import java.util.ArrayList;
+              import java.util.List;
+              
               class Test {
                   void test() {
                     HttpRequestWithBody request = /*~~>*/Unirest.post("https://httpbin.org/post")
@@ -189,6 +203,14 @@ class FindCodeThatResemblesTest implements RewriteTest {
                     string.repeat(10);
                     string.replace(" ", "_");
                     string.isEmpty();
+                    string.repeat(10);
+                    string.repeat(1);
+                    
+                    List<String> listStrings = new ArrayList<>(2);
+                    listStrings.add("additional unrelated string");
+        
+                    List<Integer> listIntegers = new ArrayList<>(2);
+                    listIntegers.add(42);
                     
                     String stringHttpBody = returnHttpBody(string);
                     
