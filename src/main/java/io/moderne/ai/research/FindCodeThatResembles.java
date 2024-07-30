@@ -21,6 +21,7 @@ import io.moderne.ai.RelatedModelClient;
 import io.moderne.ai.table.CodeSearch;
 import io.moderne.ai.table.EmbeddingPerformance;
 import io.moderne.ai.table.TopKMethodMatcher;
+import io.moderne.ai.table.SuggestedMethodPatterns;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -60,6 +61,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
     transient CodeSearch codeSearchTable = new CodeSearch(this);
     transient TopKMethodMatcher topKTable = new TopKMethodMatcher(this);
     transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+    transient SuggestedMethodPatterns suggestedMethodPatternsTable = new SuggestedMethodPatterns(this);
 
 
     @Override
@@ -256,7 +258,17 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                     acc.setPopulatedTopKDataTable(true);
                 }
 
-                boolean matches = methodMatchers.stream().anyMatch(matcher -> matcher.matches(method));
+//                boolean matches = methodMatchers.stream().anyMatch(matcher -> matcher.matches(method));
+                boolean matches = false;
+                String methodPattern = "";
+                for (MethodMatcher m : methodMatchers) {
+                    if (m.matches(method)) {
+                        matches = true;
+                        methodPattern = m.toString();
+                        break;
+                    }
+                }
+
                 if (!matches) {
                     return super.visitMethodInvocation(method, ctx);
                 }
@@ -290,6 +302,13 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                         calledGenerativeModel,
                         resultGenerativeModel
                 ));
+
+                if (resultGenerativeModel || resultEmbeddingModels == 1) {
+                    suggestedMethodPatternsTable.insertRow(ctx, new SuggestedMethodPatterns.Row(
+                            method.printTrimmed(getCursor()),
+                            methodPattern
+                    ));
+                }
 
                 if (calledGenerativeModel){
                     return resultGenerativeModel ?
