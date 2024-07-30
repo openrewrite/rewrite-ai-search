@@ -59,7 +59,7 @@ public class AgentGenerativeModelClient {
     public static synchronized AgentGenerativeModelClient getInstance() {
         if (INSTANCE == null) {
             //Check if llama.cpp is already built
-            File f = new File(pathToLLama + "/server");
+            File f = new File(pathToLLama + "/llama-server");
             if (!(f.exists() && !f.isDirectory())) {
                 //Build llama.cpp
                 StringWriter sw = new StringWriter();
@@ -90,7 +90,7 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/server -m " + pathToModel + " --port " + port + " -c " + maxContextLength }));
+                            {"/bin/sh", "-c", pathToLLama + "/llama-server -m " + pathToModel + " --port " + port + " -c " + maxContextLength }));
 
                     EXECUTOR_SERVICE.submit(() -> {
                         new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
@@ -220,9 +220,9 @@ public class AgentGenerativeModelClient {
         HashMap<String, Object> input = new HashMap<>();
         input.put("stream", false);
         input.put("prompt", promptContent);
-        input.put("temperature", 0.0);
-        input.put("n_predict", 3);
-        input.put("n_probs", 10);
+        input.put("temperature", -0.00001); // temperature at 0, makes the model's probabilities only 0 or 1
+        input.put("n_predict", 1);
+        input.put("n_probs", 5);
 
         try {
             raw = http
@@ -302,10 +302,6 @@ public class AgentGenerativeModelClient {
 
         public double getProb() {
             return prob;
-        }
-
-        public String getTokStr() {
-            return tokStr;
         }
     }
 }
