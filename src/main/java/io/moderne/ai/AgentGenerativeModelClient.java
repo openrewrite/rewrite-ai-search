@@ -266,10 +266,6 @@ public class AgentGenerativeModelClient {
         int slotId;
         boolean stop;
 
-        @JsonProperty("completion_probabilities")
-        public List<CompletionProbability> getCompletionProbabilities() {
-            return completionProbabilities;
-        }
 
         public boolean isRelated(double threshold) {
             for (CompletionProbability cp : completionProbabilities) {
