@@ -90,7 +90,8 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/llama-server -m " + pathToModel + " --port " + port + " -c " + maxContextLength }));
+                            {"/bin/sh", "-c", pathToLLama + "/llama-server -m " + pathToModel + " --port " + port
+                                    + " -c " + maxContextLength + " --metrics"}));
 
                     EXECUTOR_SERVICE.submit(() -> {
                         new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
@@ -246,8 +247,6 @@ public class AgentGenerativeModelClient {
 
         return relatedResponse;
     }
-
-
     @Value
     private static class LlamaResponse {
         String content;
@@ -257,7 +256,6 @@ public class AgentGenerativeModelClient {
         }
     }
 
-
     @Value
     public static class LlamaResponseProbabilities {
         List<CompletionProbability> completionProbabilities;
@@ -266,6 +264,10 @@ public class AgentGenerativeModelClient {
         int slotId;
         boolean stop;
 
+        @JsonProperty("completion_probabilities")
+        public List<CompletionProbability> getCompletionProbabilities() {
+            return completionProbabilities;
+        }
 
         public boolean isRelated(double threshold) {
             for (CompletionProbability cp : completionProbabilities) {
@@ -286,9 +288,7 @@ public class AgentGenerativeModelClient {
             return content;
         }
 
-        public List<TokenProbability> getProbs() {
-            return probs;
-        }
+
     }
 
     @Value
@@ -299,5 +299,6 @@ public class AgentGenerativeModelClient {
         public double getProb() {
             return prob;
         }
+
     }
 }
