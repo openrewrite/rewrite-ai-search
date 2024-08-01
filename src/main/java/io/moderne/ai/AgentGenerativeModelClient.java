@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -209,6 +210,13 @@ public class AgentGenerativeModelClient {
         }
     }
 
+    public TimedRelatedness isRelatedTiming(String query, String code, double threshold) {
+        long start = System.nanoTime();
+        boolean isRelated = isRelated(query, code, threshold);
+        Duration duration = Duration.ofNanos(System.nanoTime() - start);
+        return new TimedRelatedness(isRelated, duration);
+    }
+
     public boolean isRelated(String query, String code, double threshold) {
         String promptContent = "Does this query match the code snippet?\n";
         promptContent += "Query: " + query + "\n";
@@ -300,5 +308,11 @@ public class AgentGenerativeModelClient {
             return prob;
         }
 
+    }
+
+    @Value
+    public static class TimedRelatedness {
+        boolean isRelated;
+        Duration duration;
     }
 }

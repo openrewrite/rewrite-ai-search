@@ -18,10 +18,7 @@ package io.moderne.ai.research;
 import io.moderne.ai.AgentGenerativeModelClient;
 import io.moderne.ai.EmbeddingModelClient;
 import io.moderne.ai.RelatedModelClient;
-import io.moderne.ai.table.CodeSearch;
-import io.moderne.ai.table.EmbeddingPerformance;
-import io.moderne.ai.table.TopKMethodMatcher;
-import io.moderne.ai.table.SuggestedMethodPatterns;
+import io.moderne.ai.table.*;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -60,7 +57,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
     transient CodeSearch codeSearchTable = new CodeSearch(this);
     transient TopKMethodMatcher topKTable = new TopKMethodMatcher(this);
-    transient EmbeddingPerformance performance = new EmbeddingPerformance(this);
+    transient EmbeddingPerformance embeddingPerformance = new EmbeddingPerformance(this);
+    transient GenerativeModelPerformance generativeModelPerformance = new GenerativeModelPerformance(this);
     transient SuggestedMethodPatterns suggestedMethodPatternsTable = new SuggestedMethodPatterns(this);
 
 
@@ -225,19 +223,29 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
 
             @Override
             public J.CompilationUnit visitCompilationUnit(J.CompilationUnit cu, ExecutionContext ctx) {
-                getCursor().putMessage("count", new AtomicInteger());
-                getCursor().putMessage("max", new AtomicLong());
-                getCursor().putMessage("histogram", new EmbeddingPerformance.Histogram());
+                getCursor().putMessage("countEmbedding", new AtomicInteger());
+                getCursor().putMessage("maxEmbedding", new AtomicLong());
+                getCursor().putMessage("histogramEmbedding", new EmbeddingPerformance.Histogram());
+                getCursor().putMessage("countGenerative", new AtomicInteger());
+                getCursor().putMessage("maxGenerative", new AtomicLong());
+                getCursor().putMessage("histogramGenerative", new GenerativeModelPerformance.Histogram());
                 try {
                     return super.visitCompilationUnit(cu, ctx);
                 } finally {
                     if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
-                        Duration max = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("max")).get());
-                        performance.insertRow(ctx, new EmbeddingPerformance.Row((
+                        Duration embeddingMax = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("maxEmbedding")).get());
+                        embeddingPerformance.insertRow(ctx, new EmbeddingPerformance.Row((
                                 (SourceFile) cu).getSourcePath().toString(),
-                                requireNonNull(getCursor().<AtomicInteger>getMessage("count")).get(),
-                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogram")).getBuckets(),
-                                max));
+                                requireNonNull(getCursor().<AtomicInteger>getMessage("countEmbedding")).get(),
+                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogramEmbedding")).getBuckets(),
+                                embeddingMax));
+
+                        Duration generativeMax = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("maxGenerative")).get());
+                        generativeModelPerformance.insertRow(ctx, new GenerativeModelPerformance.Row((
+                                (SourceFile) cu).getSourcePath().toString(),
+                                requireNonNull(getCursor().<AtomicInteger>getMessage("countGenerative")).get(),
+                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogramGenerative")).getBuckets(),
+                                generativeMax));
                     }
                 }
             }
@@ -276,19 +284,34 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 RelatedModelClient.Relatedness related = RelatedModelClient.getInstance()
                         .getRelatedness(resembles, method.printTrimmed(getCursor()));
                 for (Duration timing : related.getEmbeddingTimings()) {
-                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("count")).incrementAndGet();
-                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogram")).add(timing);
-                    AtomicLong max = getCursor().getNearestMessage("max");
+                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("countEmbedding")).incrementAndGet();
+                    requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getNearestMessage("histogramEmbedding")).add(timing);
+                    AtomicLong max = getCursor().getNearestMessage("maxEmbedding");
                     if (requireNonNull(max).get() < timing.toNanos()) {
                         max.set(timing.toNanos());
                     }
                 }
+
+
                 int resultEmbeddingModels = related.isRelated(); // results from two first models -1, 0, 1
                 boolean calledGenerativeModel = false;
                 boolean resultGenerativeModel = false;
                 if (resultEmbeddingModels == 0) {
-                    resultGenerativeModel = AgentGenerativeModelClient.getInstance().isRelated(resembles, method.printTrimmed(getCursor()), 0.5932);
+                    AgentGenerativeModelClient.TimedRelatedness resultGenerativeModelTimed = AgentGenerativeModelClient.getInstance()
+                            .isRelatedTiming(resembles, method.printTrimmed(getCursor()), 0.5932);
+                    resultGenerativeModel = resultGenerativeModelTimed.isRelated();
                     calledGenerativeModel = true;
+
+                    Duration timing = resultGenerativeModelTimed.getDuration();
+                    requireNonNull(getCursor().<AtomicInteger>getNearestMessage("countGenerative")).incrementAndGet();
+                    requireNonNull(getCursor().<GenerativeModelPerformance.Histogram>getNearestMessage("histogramGenerative")).add(timing);
+                    AtomicLong max = getCursor().getNearestMessage("maxGenerative");
+                    if (requireNonNull(max).get() < timing.toNanos()) {
+                        max.set(timing.toNanos());
+                    }
+
+
+
                 }
 
                 // Populate data table for debugging model's accuracy
