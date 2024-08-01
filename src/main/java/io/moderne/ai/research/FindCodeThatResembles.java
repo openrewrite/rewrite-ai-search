@@ -232,19 +232,20 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 try {
                     return super.visitCompilationUnit(cu, ctx);
                 } finally {
-                    if (getCursor().getMessage("count", new AtomicInteger()).get() > 0) {
+                    if (getCursor().getMessage("countEmbedding", new AtomicInteger()).get() > 0) {
                         Duration embeddingMax = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("maxEmbedding")).get());
                         embeddingPerformance.insertRow(ctx, new EmbeddingPerformance.Row((
                                 (SourceFile) cu).getSourcePath().toString(),
                                 requireNonNull(getCursor().<AtomicInteger>getMessage("countEmbedding")).get(),
                                 requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogramEmbedding")).getBuckets(),
                                 embeddingMax));
-
+                    }
+                    if (getCursor().getMessage("countGenerative", new AtomicInteger()).get() > 0) {
                         Duration generativeMax = Duration.ofNanos(requireNonNull(getCursor().<AtomicLong>getMessage("maxGenerative")).get());
                         generativeModelPerformance.insertRow(ctx, new GenerativeModelPerformance.Row((
                                 (SourceFile) cu).getSourcePath().toString(),
                                 requireNonNull(getCursor().<AtomicInteger>getMessage("countGenerative")).get(),
-                                requireNonNull(getCursor().<EmbeddingPerformance.Histogram>getMessage("histogramGenerative")).getBuckets(),
+                                requireNonNull(getCursor().<GenerativeModelPerformance.Histogram>getMessage("histogramGenerative")).getBuckets(),
                                 generativeMax));
                     }
                 }
