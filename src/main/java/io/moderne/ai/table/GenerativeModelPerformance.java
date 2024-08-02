@@ -36,7 +36,7 @@ public class GenerativeModelPerformance extends DataTable<GenerativeModelPerform
 
     public static class Histogram {
         private static final int BUCKETS = 100;
-        private static final long MAX_NANOS = (int) 1e9;
+        private static final long MAX_NANOS = (int) 1e12;
 
         @Getter
         @Nullable
@@ -72,7 +72,7 @@ public class GenerativeModelPerformance extends DataTable<GenerativeModelPerform
         @Column(displayName = "Histogram",
                 description = "The latency histogram of the requests made to the model (counts). " +
                               "The histogram is a non-cumulative fixed distribution of 100 buckets " +
-                              "of 0.01 second each.")
+                              "of 1 second each.")
         @Nullable
         List<Integer> histogram;
 
