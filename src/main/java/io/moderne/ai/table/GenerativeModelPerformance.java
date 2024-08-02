@@ -36,7 +36,7 @@ public class GenerativeModelPerformance extends DataTable<GenerativeModelPerform
 
     public static class Histogram {
         private static final int BUCKETS = 100;
-        private static final long MAX_NANOS = (int) 1e12;
+        private static final long MAX_NANOS = (long) 1e11;
 
         @Getter
         @Nullable
