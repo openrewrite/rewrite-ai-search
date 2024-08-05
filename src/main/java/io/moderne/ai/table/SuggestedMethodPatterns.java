@@ -39,5 +39,9 @@ public class SuggestedMethodPatterns extends DataTable<SuggestedMethodPatterns.R
         @Column(displayName = "Method Pattern",
                 description = "Method invocation pattern.")
         String methodPattern;
+
+        @Column(displayName = "Query",
+                description = "The natural language search query.")
+        String query;
     }
 }

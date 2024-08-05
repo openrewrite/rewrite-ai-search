@@ -330,7 +330,8 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 if (resultGenerativeModel || resultEmbeddingModels == 1) {
                     suggestedMethodPatternsTable.insertRow(ctx, new SuggestedMethodPatterns.Row(
                             method.printTrimmed(getCursor()),
-                            methodPattern
+                            methodPattern,
+                            resembles
                     ));
                 }
 
