@@ -17,10 +17,10 @@ package io.moderne.ai.table;
 
 import lombok.Getter;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.Column;
 import org.openrewrite.DataTable;
 import org.openrewrite.Recipe;
-import org.openrewrite.internal.lang.Nullable;
 
 import java.time.Duration;
 import java.util.ArrayList;
