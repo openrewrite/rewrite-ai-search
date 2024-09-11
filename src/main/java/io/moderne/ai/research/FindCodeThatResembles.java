@@ -56,7 +56,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             description = "Since AI based matching has a higher latency than rules based matching, " +
                           "we do a first pass to find the top k methods using embeddings. " +
                           "To narrow the scope, you can specify the top k methods as method filters.",
-            example = "1000")
+            example = "5")
     int k;
 
     transient CodeSearch codeSearchTable = new CodeSearch(this);

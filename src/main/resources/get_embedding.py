@@ -14,30 +14,28 @@
 # limitations under the License.
 #
 
-import os
-os.environ["XDG_CACHE_HOME"]="/HF_CACHE"
-os.environ["HF_HOME"]="/HF_CACHE/huggingface"
-os.environ["HUGGINGFACE_HUB_CACHE"]="/HF_CACHE/huggingface/hub"
-os.environ["TRANSFORMERS_CACHE"]="/HF_CACHE/huggingface"
-import torch #pytorch = 2.0.1
-from transformers import AutoModel, AutoTokenizer, logging # 4.29.2
-import gradio as gr # 3.23.0
-
-logging.set_verbosity_error()
 
 #initialize models
-tokenizer = AutoTokenizer.from_pretrained("BAAI/bge-small-en-v1.5")
-model = AutoModel.from_pretrained("BAAI/bge-small-en-v1.5")
-model.eval()
+from infinity_emb import EngineArgs, AsyncEmbeddingEngine
+from infinity_emb import create_server
+import uvicorn
+import logging
+from fastapi.responses import JSONResponse
 
-def get_embedding(input_string):
-    with torch.no_grad():
+logging.getLogger("infinity_emb").setLevel(logging.ERROR)
 
-        encoded_input = tokenizer([input_string], padding=True, truncation=True, return_tensors='pt')
-        model_output = model(**encoded_input)
-        # Perform pooling. In this case, cls pooling.
-        embedding = model_output[0][:, 0]
-        embedding = torch.nn.functional.normalize(embedding, p=2, dim=1)[0]
-        return embedding.tolist()
+engine_args = EngineArgs(
+    model_name_or_path="michaelfeil/bge-small-en-v1.5",
+    device="cpu",
+    engine="optimum",
+    served_model_name="bge-small",
+    compile=True,
+    batch_size=1
+)
 
-gr.Interface(fn=get_embedding, inputs="text", outputs="text").launch(server_port=7860)
+fastapi_app = create_server(engine_args_list=[engine_args])
+@fastapi_app.head("/embeddings")
+def read_root_head():
+    return JSONResponse({"message": "Infinity embedding is running"})
+
+uvicorn.run(fastapi_app, host="127.0.0.1", port=7860)
