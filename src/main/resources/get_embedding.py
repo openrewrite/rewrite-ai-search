@@ -20,7 +20,7 @@ from infinity_emb import EngineArgs, AsyncEmbeddingEngine
 from infinity_emb import create_server
 import uvicorn
 import logging
-import requests
+from fastapi.responses import JSONResponse
 
 logging.getLogger("infinity_emb").setLevel(logging.ERROR)
 
@@ -34,4 +34,8 @@ engine_args = EngineArgs(
 )
 
 fastapi_app = create_server(engine_args_list=[engine_args])
+@fastapi_app.head("/embeddings")
+def read_root_head():
+    return JSONResponse({"message": "Infinity embedding is running"})
+
 uvicorn.run(fastapi_app, host="127.0.0.1", port=7860)
