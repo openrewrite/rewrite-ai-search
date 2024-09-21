@@ -91,8 +91,8 @@ public class AgentGenerativeModelClient {
                 try {
                     Runtime runtime = Runtime.getRuntime();
                     Process proc_server = runtime.exec((new String[]
-                            {"/bin/sh", "-c", pathToLLama + "/llama-server -m " + pathToModel + " --port " + port
-                                    + " -c " + maxContextLength + " --metrics"}));
+                            {"/bin/sh", "-c", pathToLLama + "/llama-server -m " + pathToModel + " --port " + port +
+                                    " -c " + maxContextLength + " --metrics"}));
 
                     EXECUTOR_SERVICE.submit(() -> {
                         new BufferedReader(new InputStreamReader(proc_server.getInputStream())).lines()
