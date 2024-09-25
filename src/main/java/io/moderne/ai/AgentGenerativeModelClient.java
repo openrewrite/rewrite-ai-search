@@ -218,11 +218,12 @@ public class AgentGenerativeModelClient {
     }
 
     public boolean isRelated(String query, String code, double threshold) {
-        String promptContent = "Does this query match the code snippet?\n";
+        String promptContent = "<|im_start|>system\nYou are tasked with predicting whether a certain code snippet matches the search query. Answer as 'ANS: Yes' or 'ANS: No'<|im_end|>\n";
+        promptContent += "<|im_start|>user\n";
+        promptContent += "Code: '" + code + "'\n";
         promptContent += "Query: " + query + "\n";
-        promptContent += "Code: " + code + "\n";
-        promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
-        promptContent = "[INST]" + promptContent + "[/INST]ANS:";
+        promptContent += "<|im_end|>\n<|im_start|>assistant\n";
+        promptContent += "ANS:";
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
         HttpSender.Response raw;
 
