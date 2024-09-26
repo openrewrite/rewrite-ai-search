@@ -148,7 +148,7 @@ public class AgentGenerativeModelClient {
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
-            String text = "[INST]" + promptContent + code + "```\n[/INST]1.";
+            String text = "<|im_start|>user\n" + promptContent + code + "```\n<|im_end|>\n<|im_start|>assistant\n1.";
             HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(90));
             HttpSender.Response raw;
 
