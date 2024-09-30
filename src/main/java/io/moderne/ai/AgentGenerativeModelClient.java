@@ -51,7 +51,7 @@ public class AgentGenerativeModelClient {
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
-    static String pathToModel = "/MODELS/codellama.gguf";
+    static String pathToModel = "/MODELS/qwencoder.gguf";
     static String pathToLLama = "/app/llama.cpp";
     static String maxContextLength = "1024";
     static String pathToFiles = "/app/";
@@ -148,7 +148,7 @@ public class AgentGenerativeModelClient {
             while ((line = bufferedReader.readLine()) != null) {
                 promptContent.append(line).append("\n");
             }
-            String text = "[INST]" + promptContent + code + "```\n[/INST]1.";
+            String text = "<|im_start|>user\n" + promptContent + code + "```\n<|im_end|>\n<|im_start|>assistant\n1.";
             HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(90));
             HttpSender.Response raw;
 
@@ -218,11 +218,12 @@ public class AgentGenerativeModelClient {
     }
 
     public boolean isRelated(String query, String code, double threshold) {
-        String promptContent = "Does this query match the code snippet?\n";
+        String promptContent = "<|im_start|>system\nYou are tasked with predicting whether a certain code snippet matches the search query. Answer as 'ANS: Yes' or 'ANS: No'<|im_end|>\n";
+        promptContent += "<|im_start|>user\n";
+        promptContent += "Code: '" + code + "'\n";
         promptContent += "Query: " + query + "\n";
-        promptContent += "Code: " + code + "\n";
-        promptContent += "Answer as 'ANS: Yes' or 'ANS: No'.\n";
-        promptContent = "[INST]" + promptContent + "[/INST]ANS:";
+        promptContent += "<|im_end|>\n<|im_start|>assistant\n";
+        promptContent += "ANS:";
         HttpSender http = new HttpUrlConnectionSender(Duration.ofSeconds(20), Duration.ofSeconds(60));
         HttpSender.Response raw;
 

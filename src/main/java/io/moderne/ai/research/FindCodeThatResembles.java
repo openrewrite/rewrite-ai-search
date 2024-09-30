@@ -271,7 +271,6 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                     acc.setPopulatedTopKDataTable(true);
                 }
 
-//                boolean matches = methodMatchers.stream().anyMatch(matcher -> matcher.matches(method));
                 boolean matches = false;
                 String methodPattern = "";
                 for (MethodMatcher m : methodMatchers) {
@@ -303,7 +302,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
                 boolean resultGenerativeModel = false;
                 if (resultEmbeddingModels == 0) {
                     AgentGenerativeModelClient.TimedRelatedness resultGenerativeModelTimed = AgentGenerativeModelClient.getInstance()
-                            .isRelatedTiming(resembles, method.printTrimmed(getCursor()), 0.5932);
+                            .isRelatedTiming(resembles, method.printTrimmed(getCursor()), 0.413);
                     resultGenerativeModel = resultGenerativeModelTimed.isRelated();
                     calledGenerativeModel = true;
 
