@@ -51,7 +51,7 @@ public class AgentGenerativeModelClient {
             .registerModule(new ParameterNamesModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(3);
-    static String pathToModel = "/MODELS/codellama.gguf";
+    static String pathToModel = "/MODELS/qwencoder.gguf";
     static String pathToLLama = "/app/llama.cpp";
     static String maxContextLength = "1024";
     static String pathToFiles = "/app/";
