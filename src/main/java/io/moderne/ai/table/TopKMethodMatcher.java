@@ -47,6 +47,6 @@ public class TopKMethodMatcher extends DataTable<TopKMethodMatcher.Row> {
         @Column(displayName = "Query",
                 description = "The natural language search query.")
         String query;
-        
+
     }
 }
