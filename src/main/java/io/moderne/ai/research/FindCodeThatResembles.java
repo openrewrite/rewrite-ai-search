@@ -127,7 +127,7 @@ public class FindCodeThatResembles extends ScanningRecipe<FindCodeThatResembles.
             return topMethodPatterns;
         }
 
-        public List<MethodMatcher> populateTopK() {
+        public @Nullable List<MethodMatcher> populateTopK() {
             if (topMethodPatterns != null) {
                 return null;
             }
