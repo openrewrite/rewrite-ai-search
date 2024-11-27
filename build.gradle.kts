@@ -14,4 +14,6 @@ dependencies {
     implementation("com.konghq:unirest-java:3.14.2")
     implementation("org.openrewrite:rewrite-maven")
     testRuntimeOnly("org.openrewrite:rewrite-java-17")
+
+    testImplementation("org.openrewrite:rewrite-test")
 }
